@@ -13,6 +13,6 @@ export default defineConfig({
     // sont lancés par la construction Vercel, où NODE_ENV vaut « production ». Ils ne
     // dépendent ainsi d'aucune variable de l'environnement de production.
     env: { NODE_ENV: 'test' },
-      testTimeout: 30000,
+    testTimeout: 30000,
   },
 })
