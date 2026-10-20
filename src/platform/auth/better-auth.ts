@@ -35,7 +35,7 @@ export function createBetterAuth(db: Db): AuthPort {
     emailAndPassword: { enabled: true, minPasswordLength: 8 },
     secret: resolveSecret(),
     baseURL: resolveBaseUrl(),
-    
+
     // Limitation du nombre de tentatives : voir la sous-partie 2.3.
 
     // DETTE TECHNIQUE DT-004 (docs/qualite/dette-technique.md) : les compteurs sont conservés
