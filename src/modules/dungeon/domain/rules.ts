@@ -100,10 +100,7 @@ export function generateRooms(seed: number, heroCount: number): Room[] {
   }
   // La dernière salle abrite toujours le troll, dont les points de vie dépendent du nombre de héros.
   const boss = spec(BOSS)
-  rooms.push({
-    kind: 'monsters',
-    monsters: [{ ...boss, hp: boss.hp * heroCount }],
-  })
+  rooms.push({ kind: 'monsters', monsters: [{ ...boss, hp: boss.hp * heroCount }] })
   return rooms
 }
 
@@ -160,12 +157,7 @@ export function resolveRound(state: GameState, at: number): GameEvent[] {
   // 1. Les soins, appliqués avant toute attaque.
   for (const [heroId, action] of Object.entries(actions)) {
     if (action.type !== 'heal' || !isStanding(action.target)) continue
-    record({
-      kind: 'heal',
-      source: heroId,
-      target: action.target,
-      amount: HEAL_AMOUNT,
-    })
+    record({ kind: 'heal', source: heroId, target: action.target, amount: HEAL_AMOUNT })
   }
 
   // 2. Les attaques des héros. Si la cible est déjà vaincue, le premier monstre debout est visé.
@@ -187,12 +179,7 @@ export function resolveRound(state: GameState, at: number): GameEvent[] {
     const target = chooseMonsterTarget(monster, targets)
     let amount = rollDamage(random, monster.attack, DAMAGE_SPREAD.monster)
     if (actions[target.id]?.type === 'defend') amount = Math.ceil(amount / 2)
-    record({
-      kind: 'damage',
-      source: monster.id,
-      target: target.id,
-      amount,
-    })
+    record({ kind: 'damage', source: monster.id, target: target.id, amount })
   }
 
   // 4. Issue de la manche.
@@ -215,10 +202,7 @@ export function resolveRound(state: GameState, at: number): GameEvent[] {
   if (!heroesLeft || (!monstersLeft && lastRoom)) {
     const result = heroesLeft ? 'won' : 'lost'
     const heroIds = state.heroes.map((hero) => hero.id)
-    events.push({
-      type: 'GameEnded',
-      data: { result, loot: state.loot, heroIds, at },
-    })
+    events.push({ type: 'GameEnded', data: { result, loot: state.loot, heroIds, at } })
   }
   return events
 }
@@ -263,13 +247,7 @@ function decideCommand(state: GameState, command: GameCommand, now: number): Dec
       events: [
         {
           type: 'GameCreated',
-          data: {
-            hostId: playerId,
-            hostName: name,
-            hero: { ...HERO },
-            seed,
-            at: now,
-          },
+          data: { hostId: playerId, hostName: name, hero: { ...HERO }, seed, at: now },
         },
       ],
     }
@@ -287,12 +265,7 @@ function decideCommand(state: GameState, command: GameCommand, now: number): Dec
         events: [
           {
             type: 'PlayerJoined',
-            data: {
-              playerId: command.playerId,
-              name: command.name,
-              hero: { ...HERO },
-              at: now,
-            },
+            data: { playerId: command.playerId, name: command.name, hero: { ...HERO }, at: now },
           },
         ],
       }
@@ -306,15 +279,14 @@ function decideCommand(state: GameState, command: GameCommand, now: number): Dec
         events: [
           {
             type: 'GameStarted',
-            data: {
-              rooms: generateRooms(state.seed, state.heroes.length),
-              at: now,
-            },
+            data: { rooms: generateRooms(state.seed, state.heroes.length), at: now },
           },
         ],
       }
 
     case 'OpenDoor': {
+      // DETTE TECHNIQUE DT-006 (docs/qualite/dette-technique.md) : l'exploration n'a pas d'échéance ;
+      // un joueur absent lorsque vient son tour bloque toute l'expédition.
       if (state.phase !== 'exploring') return fail({ code: 'WRONG_PHASE', phase: state.phase })
       if (!isMember(state, command.playerId)) return fail({ code: 'NOT_A_MEMBER' })
       if (state.heroes[state.turn].id !== command.playerId) return fail({ code: 'NOT_YOUR_TURN' })
@@ -324,15 +296,7 @@ function decideCommand(state: GameState, command: GameCommand, now: number): Dec
       return {
         ok: true,
         events: [
-          {
-            type: 'RoomEntered',
-            data: {
-              heroId: command.playerId,
-              room,
-              deadline,
-              at: now,
-            },
-          },
+          { type: 'RoomEntered', data: { heroId: command.playerId, room, deadline, at: now } },
         ],
       }
     }
@@ -349,12 +313,7 @@ function decideCommand(state: GameState, command: GameCommand, now: number): Dec
 
       const submitted: GameEvent = {
         type: 'ActionSubmitted',
-        data: {
-          heroId: hero.id,
-          round: state.round,
-          action: command.action,
-          at: now,
-        },
+        data: { heroId: hero.id, round: state.round, action: command.action, at: now },
       }
       // Si tous les héros debout ont choisi, la manche est résolue sans attendre l'échéance.
       const after = evolve(state, submitted)
