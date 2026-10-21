@@ -10,13 +10,7 @@ const SEED = 42
 // Événements de départ : Alice ouvre l'expédition, Bob la rejoint.
 const created: GameEvent = {
   type: 'GameCreated',
-  data: {
-    hostId: 'alice',
-    hostName: 'Alice',
-    hero: { hp: 30, attack: 6 },
-    seed: SEED,
-    at: T0,
-  },
+  data: { hostId: 'alice', hostName: 'Alice', hero: { hp: 30, attack: 6 }, seed: SEED, at: T0 },
 }
 const bobJoined: GameEvent = {
   type: 'PlayerJoined',
@@ -26,14 +20,8 @@ const bobJoined: GameEvent = {
 // Salles choisies par les tests : l'événement GameStarted porte les salles, qui ne sont
 // donc pas nécessairement tirées au sort. Les tests décident ainsi du contenu du donjon.
 const EMPTY: Room = { kind: 'empty' }
-const TROLL: Room = {
-  kind: 'monsters',
-  monsters: [{ kind: 'troll', hp: 20, attack: 7 }],
-}
-const started = (rooms: Room[]): GameEvent => ({
-  type: 'GameStarted',
-  data: { rooms, at: T0 },
-})
+const TROLL: Room = { kind: 'monsters', monsters: [{ kind: 'troll', hp: 20, attack: 7 }] }
+const started = (rooms: Room[]): GameEvent => ({ type: 'GameStarted', data: { rooms, at: T0 } })
 const withFirstRoom = (first: Room): Room[] => [first, EMPTY, EMPTY, EMPTY, EMPTY, TROLL]
 const GOBLIN_FIRST = withFirstRoom({
   kind: 'monsters',
@@ -44,10 +32,7 @@ const GOBLIN_FIRST = withFirstRoom({
 function play(state: GameState, command: GameCommand, now = T0) {
   const decision = decide(state, command, now)
   if (!decision.ok) throw new Error(`Commande refusée : ${decision.error.code}`)
-  return {
-    state: decision.events.reduce(evolve, state),
-    events: decision.events,
-  }
+  return { state: decision.events.reduce(evolve, state), events: decision.events }
 }
 
 /** Expédition d'Alice et Bob, entrée dans une première salle occupée par un gobelin. */
@@ -64,12 +49,19 @@ describe('Donjon - salon', () => {
       type: 'CreateGame',
       playerId: 'alice',
       name: 'Alice',
+      difficulty: 'hard',
       seed: 1,
     }
     const { state } = play(initialState, command)
     expect(state.phase).toBe('lobby')
+    expect(state.difficulty).toBe('hard')
     expect(state.heroes.map((hero) => hero.name)).toEqual(['Alice'])
     expect(state.heroes[0]).toMatchObject({ hp: 30, maxHp: 30, attack: 6 })
+  })
+
+  it('lit comme facile une expédition enregistrée sans niveau de difficulté', () => {
+    // L'événement created, comme ceux enregistrés au TD6, ne porte pas de niveau de difficulté.
+    expect(replay([created]).difficulty).toBe('easy')
   })
 
   it("refuse qu'un joueur rejoigne deux fois la même expédition", () => {
@@ -78,20 +70,13 @@ describe('Donjon - salon', () => {
       { type: 'JoinGame', playerId: 'bob', name: 'Bob' },
       T0,
     )
-    expect(decision).toEqual({
-      ok: false,
-      error: { code: 'ALREADY_JOINED' },
-    })
+    expect(decision).toEqual({ ok: false, error: { code: 'ALREADY_JOINED' } })
   })
 
   it('refuse un cinquième héros', () => {
     let state = replay([created])
     for (const id of ['b', 'c', 'd']) {
-      state = play(state, {
-        type: 'JoinGame',
-        playerId: id,
-        name: id,
-      }).state
+      state = play(state, { type: 'JoinGame', playerId: id, name: id }).state
     }
     const decision = decide(state, { type: 'JoinGame', playerId: 'e', name: 'e' }, T0)
     expect(decision).toEqual({ ok: false, error: { code: 'GAME_FULL' } })
@@ -109,10 +94,7 @@ describe('Donjon - salon', () => {
   it("refuse de nouveaux héros une fois l'expédition lancée", () => {
     const state = replay([created, started(GOBLIN_FIRST)])
     const decision = decide(state, { type: 'JoinGame', playerId: 'bob', name: 'Bob' }, T0)
-    expect(decision).toEqual({
-      ok: false,
-      error: { code: 'WRONG_PHASE', phase: 'exploring' },
-    })
+    expect(decision).toEqual({ ok: false, error: { code: 'WRONG_PHASE', phase: 'exploring' } })
   })
 })
 
@@ -140,15 +122,9 @@ describe('Donjon - tirage des salles', () => {
   })
 
   it("enregistre les salles tirées dans l'événement GameStarted", () => {
-    const { events } = play(replay([created]), {
-      type: 'StartGame',
-      playerId: 'alice',
-    })
+    const { events } = play(replay([created]), { type: 'StartGame', playerId: 'alice' })
     expect(events).toEqual([
-      {
-        type: 'GameStarted',
-        data: { rooms: generateRooms(SEED, 1), at: T0 },
-      },
+      { type: 'GameStarted', data: { rooms: generateRooms(SEED, 1), at: T0 } },
     ])
   })
 })
@@ -213,28 +189,17 @@ describe('Donjon - combat', () => {
     // Bob choisit pour la manche 1 alors que son échéance est passée : la manche 2 a commencé.
     const decision = decide(
       state,
-      {
-        type: 'SubmitAction',
-        playerId: 'bob',
-        round: 1,
-        action: { type: 'defend' },
-      },
+      { type: 'SubmitAction', playerId: 'bob', round: 1, action: { type: 'defend' } },
       T0 + ROUND_MS + 1,
     )
-    expect(decision).toEqual({
-      ok: false,
-      error: { code: 'ROUND_OVER', round: 2 },
-    })
+    expect(decision).toEqual({ ok: false, error: { code: 'ROUND_OVER', round: 2 } })
   })
 
   it("fait défendre, à l'échéance, les héros qui n'ont rien choisi", () => {
     const { events } = play(inCombat(), { type: 'CheckDeadline' }, T0 + ROUND_MS + 1)
     const [resolved] = events
     if (resolved.type !== 'RoundResolved') throw new Error('RoundResolved attendu')
-    expect(resolved.data.actions).toEqual({
-      alice: { type: 'defend' },
-      bob: { type: 'defend' },
-    })
+    expect(resolved.data.actions).toEqual({ alice: { type: 'defend' }, bob: { type: 'defend' } })
     // La manche est résolue à l'instant de son échéance, et non à l'instant de la commande.
     expect(resolved.data.at).toBe(T0 + ROUND_MS)
   })

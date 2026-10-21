@@ -2,7 +2,7 @@
  * État et événements d'une expédition, et fonction evolve.
  * Les règles du jeu (decide) se trouvent dans rules.ts, la vue de chaque joueur dans view.ts.
  */
-import type { MonsterKind } from './content'
+import { DEFAULT_DIFFICULTY, type Difficulty, type MonsterKind } from './content'
 
 // ---------------------------------------------------------------------------
 // Éléments du jeu
@@ -67,6 +67,8 @@ export interface GameState {
   /** Faux tant que l'expédition n'a pas été ouverte. */
   exists: boolean
   hostId: string
+  /** Niveau de difficulté, qui détermine la stratégie des monstres. */
+  difficulty: Difficulty
   /** Graine du hasard de l'expédition : information secrète, jamais transmise aux joueurs. */
   seed: number
   phase: Phase
@@ -86,11 +88,7 @@ export interface GameState {
   /** Actions déjà choisies pour la manche en cours, par identifiant de héros. */
   choices: Record<string, Action>
   /** Résultat de la dernière manche résolue, affiché aux joueurs. */
-  lastRound: {
-    round: number
-    actions: Record<string, Action>
-    effects: Effect[]
-  } | null
+  lastRound: { round: number; actions: Record<string, Action>; effects: Effect[] } | null
   /** Or ramassé dans les trésors. */
   loot: number
 }
@@ -99,6 +97,7 @@ export interface GameState {
 export const initialState: GameState = {
   exists: false,
   hostId: '',
+  difficulty: DEFAULT_DIFFICULTY,
   seed: 0,
   phase: 'lobby',
   heroes: [],
@@ -124,29 +123,20 @@ export type GameEvent =
         hostId: string
         hostName: string
         hero: HeroSpec
+        /** Facultatif : absent des événements enregistrés avant le TD7. */
+        difficulty?: Difficulty
         seed: number
         at: number
       }
     }
-  | {
-      type: 'PlayerJoined'
-      data: { playerId: string; name: string; hero: HeroSpec; at: number }
-    }
+  | { type: 'PlayerJoined'; data: { playerId: string; name: string; hero: HeroSpec; at: number } }
   | { type: 'GameStarted'; data: { rooms: Room[]; at: number } }
   | {
       type: 'RoomEntered'
       // deadline : échéance de la première manche si la salle abrite des monstres, sinon null.
-      data: {
-        heroId: string
-        room: number
-        deadline: number | null
-        at: number
-      }
+      data: { heroId: string; room: number; deadline: number | null; at: number }
     }
-  | {
-      type: 'ActionSubmitted'
-      data: { heroId: string; round: number; action: Action; at: number }
-    }
+  | { type: 'ActionSubmitted'; data: { heroId: string; round: number; action: Action; at: number } }
   | {
       type: 'RoundResolved'
       data: {
@@ -162,12 +152,7 @@ export type GameEvent =
     }
   | {
       type: 'GameEnded'
-      data: {
-        result: 'won' | 'lost'
-        loot: number
-        heroIds: string[]
-        at: number
-      }
+      data: { result: 'won' | 'lost'; loot: number; heroIds: string[]; at: number }
     }
 
 // ---------------------------------------------------------------------------
@@ -217,10 +202,7 @@ export function applyEffect<T extends { id: string; hp: number; maxHp: number }>
   return fighters.map((fighter) => {
     if (fighter.id !== effect.target) return fighter
     const change = effect.kind === 'damage' ? -effect.amount : effect.amount
-    return {
-      ...fighter,
-      hp: Math.max(0, Math.min(fighter.maxHp, fighter.hp + change)),
-    }
+    return { ...fighter, hp: Math.max(0, Math.min(fighter.maxHp, fighter.hp + change)) }
   })
 }
 
@@ -236,6 +218,8 @@ export function evolve(state: GameState, event: GameEvent): GameState {
         ...initialState,
         exists: true,
         hostId: event.data.hostId,
+        // Upcasting : un événement enregistré avant le TD7 ne porte pas de niveau de difficulté.
+        difficulty: event.data.difficulty ?? DEFAULT_DIFFICULTY,
         seed: event.data.seed,
         heroes: [newHero(event.data.hostId, event.data.hostName, event.data.hero)],
       }
@@ -247,23 +231,13 @@ export function evolve(state: GameState, event: GameEvent): GameState {
       }
 
     case 'GameStarted':
-      return {
-        ...state,
-        phase: 'exploring',
-        rooms: event.data.rooms,
-        turn: 0,
-      }
+      return { ...state, phase: 'exploring', rooms: event.data.rooms, turn: 0 }
 
     case 'RoomEntered': {
       const room = state.rooms[event.data.room]
       const turn = nextStandingHero(state.heroes, state.turn)
       if (room.kind === 'treasure') {
-        return {
-          ...state,
-          room: event.data.room,
-          turn,
-          loot: state.loot + room.gold,
-        }
+        return { ...state, room: event.data.room, turn, loot: state.loot + room.gold }
       }
       if (room.kind === 'monsters') {
         // La salle déclenche un combat : la première manche commence aussitôt.
@@ -283,13 +257,7 @@ export function evolve(state: GameState, event: GameEvent): GameState {
     }
 
     case 'ActionSubmitted':
-      return {
-        ...state,
-        choices: {
-          ...state.choices,
-          [event.data.heroId]: event.data.action,
-        },
-      }
+      return { ...state, choices: { ...state.choices, [event.data.heroId]: event.data.action } }
 
     case 'RoundResolved': {
       // Les effets enregistrés sont appliqués dans leur ordre : aucun hasard ici.
@@ -321,12 +289,7 @@ export function evolve(state: GameState, event: GameEvent): GameState {
     }
 
     case 'GameEnded':
-      return {
-        ...state,
-        phase: event.data.result,
-        deadline: null,
-        choices: {},
-      }
+      return { ...state, phase: event.data.result, deadline: null, choices: {} }
   }
 }
 
