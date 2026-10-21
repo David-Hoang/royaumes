@@ -81,15 +81,9 @@ describe('API du module Donjon', () => {
     })
 
     const seenByBob = await viewOf(api, gameId, 'bob')
-    expect(seenByBob.heroes[0]).toMatchObject({
-      id: 'alice',
-      ready: true,
-      action: null,
-    })
+    expect(seenByBob.heroes[0]).toMatchObject({ id: 'alice', ready: true, action: null })
     const seenByAlice = await viewOf(api, gameId, 'alice')
-    expect(seenByAlice.heroes[0]).toMatchObject({
-      action: { type: 'defend' },
-    })
+    expect(seenByAlice.heroes[0]).toMatchObject({ action: { type: 'defend' } })
   })
 
   it("fait défendre, à l'échéance, les héros qui n'ont rien choisi", async () => {
@@ -100,10 +94,38 @@ describe('API du module Donjon', () => {
     const { view: after } = (await res.json()) as { view: GameView }
 
     expect(after.lastRound?.round).toBe(view.round)
-    expect(after.lastRound?.actions).toEqual({
-      alice: { type: 'defend' },
-      bob: { type: 'defend' },
-    })
+    expect(after.lastRound?.actions).toEqual({ alice: { type: 'defend' }, bob: { type: 'defend' } })
+  })
+})
+
+describe('Niveaux de difficulté et compagnons', () => {
+  it('ouvre une expédition au niveau de difficulté choisi', async () => {
+    const api = await createTestApi()
+    const res = await api.post('/api/dungeon/games', { difficulty: 'hard' })
+    expect(res.status).toBe(201)
+    expect((await res.json()).view.difficulty).toBe('hard')
+  })
+
+  it('rejette un niveau de difficulté inconnu (400)', async () => {
+    const api = await createTestApi()
+    const res = await api.post('/api/dungeon/games', { difficulty: 'impossible' })
+    expect(res.status).toBe(400)
+  })
+
+  it("ne laisse que l'hôte ajouter un compagnon (403)", async () => {
+    const api = await createTestApi()
+    const gameId = await openGame(api, ['alice', 'bob'])
+
+    const refused = await api.post(`/api/dungeon/games/${gameId}/companion`, {}, 'bob')
+    expect(refused.status).toBe(403)
+
+    const added = await api.post(`/api/dungeon/games/${gameId}/companion`, {}, 'alice')
+    const { view } = (await added.json()) as { view: GameView }
+    expect(view.heroes.map((hero) => [hero.name, hero.companion])).toEqual([
+      ['alice', false],
+      ['bob', false],
+      ['Compagnon 1', true],
+    ])
   })
 })
 
