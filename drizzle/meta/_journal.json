@@ -22,6 +22,13 @@
       "when": 1792574074091,
       "tag": "0002_projections",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792574384274,
+      "tag": "0003_classement",
+      "breakpoints": true
     }
   ]
 }
