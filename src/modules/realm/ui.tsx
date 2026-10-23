@@ -35,6 +35,16 @@ function canAfford(stock: Stock, cost: Partial<Stock> | null) {
   return !!cost && Object.entries(cost).every(([r, n]) => stock[r as keyof Stock] >= (n ?? 0))
 }
 
+/** Première ressource qui manque pour payer un coût, avec la quantité manquante ; absente si le coût est couvert. */
+function firstMissing(stock: Stock, cost: Partial<Stock> | null) {
+  if (!cost) return undefined
+  for (const [r, n] of Object.entries(cost)) {
+    const missing = Math.ceil((n ?? 0) - stock[r as keyof Stock])
+    if (missing > 0) return { resource: r, missing }
+  }
+  return undefined
+}
+
 /** Libellé affiché pour chaque état de la connexion temps réel. */
 const STATUS_LABELS = {
   connecting: 'Connexion...',
@@ -139,20 +149,38 @@ export function VillageScreen({ userId }: { userId: string }) {
       <section className="panel buildings" aria-label="Bâtiments">
         {BUILDINGS.map((b) => {
           const cost = view.nextCosts[b]
+          const lacking = firstMissing(stock, cost)
+
           return (
             <div key={b} className="building">
-              <span>
-                <Entity kind={b} showLabel /> <span className="muted">niveau {view.levels[b]}</span>
+              <span className="name">
+                <span className="badge-icon">
+                  <Entity kind={b} />
+                </span>
+                <span>
+                  <Entity kind={b} showLabel hideGlyph />{' '}
+                  <span className="level">
+                    {view.levels[b] === 0 ? 'Non construit' : `Niv. ${view.levels[b]}`}
+                  </span>
+                </span>
               </span>
               <span className="row">
                 {cost &&
                   Object.entries(cost).map(([r, n]) => (
-                    <span key={r} className="muted">
+                    <span key={r} className="cost" data-short={stock[r as keyof Stock] < (n ?? 0)}>
                       <Entity kind={r} /> {n}
                     </span>
                   ))}
                 <button type="button" disabled={!canAfford(stock, cost)} onClick={() => upgrade(b)}>
-                  {view.levels[b] === 0 ? 'Construire' : 'Améliorer'}
+                  {lacking ? (
+                    <>
+                      Il manque {lacking.missing} <Entity kind={lacking.resource} />
+                    </>
+                  ) : view.levels[b] === 0 ? (
+                    'Construire'
+                  ) : (
+                    'Améliorer'
+                  )}
                 </button>
               </span>
             </div>

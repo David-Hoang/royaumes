@@ -45,7 +45,10 @@ const ERRORS: Record<ApiError['code'], string> = {
 }
 
 /** Libellé de chaque niveau de difficulté. */
-const DIFFICULTY_LABELS: Record<Difficulty, string> = { easy: 'Facile', hard: 'Difficile' }
+const DIFFICULTY_LABELS: Record<Difficulty, string> = {
+  easy: 'Facile',
+  hard: 'Difficile',
+}
 
 /** Libellé affiché pour chaque état de la connexion temps réel. */
 const STATUS_LABELS = {
@@ -205,7 +208,9 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
   // zéro, la commande d'échéance fait enregistrer la suite de l'expédition, et donc
   // notifier tous les membres.
   const checkDeadline = useCallback(async () => {
-    const res = await client.games[':id'].deadline.$post({ param: { id: gameId } })
+    const res = await client.games[':id'].deadline.$post({
+      param: { id: gameId },
+    })
     if (res.ok) setView((await res.json()).view)
   }, [gameId])
   const remaining = useCountdown(
@@ -258,17 +263,31 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
       {/* Héros de l'expédition. */}
       <section className="panel heroes" aria-label="Héros">
         {view.heroes.map((hero) => (
-          <div key={hero.id} className="fighter" data-down={hero.hp <= 0}>
-            <span>
+          <div
+            key={hero.id}
+            className="fighter"
+            data-down={hero.hp <= 0}
+            data-turn={view.turnHeroId === hero.id}
+          >
+            <span className="fighter-name">
               <Entity kind={hero.companion ? 'companion' : 'hero'} /> {hero.name}
               {hero.id === view.hostId && <span className="muted"> (hôte)</span>}
               {hero.companion && <span className="muted"> (piloté par l'ordinateur)</span>}
             </span>
-            <span className="muted">
-              {hero.hp}/{hero.maxHp} PV
+            <span className="fighter-tags">
+              {view.phase === 'combat' && hero.ready && <span className="ok">prêt</span>}
+              {view.turnHeroId === hero.id && <span className="ok">à son tour</span>}
+              <span className="muted">
+                {hero.hp}/{hero.maxHp} PV
+              </span>
             </span>
-            {view.phase === 'combat' && hero.ready && <span className="ok">prêt</span>}
-            {view.turnHeroId === hero.id && <span className="ok">à son tour</span>}
+            <span className="hp">
+              <i
+                style={{
+                  width: `${Math.max(0, (hero.hp / hero.maxHp) * 100)}%`,
+                }}
+              />
+            </span>
           </div>
         ))}
       </section>
@@ -340,11 +359,18 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
           <div className="monsters">
             {view.monsters.map((monster) => (
               <div key={monster.id} className="fighter" data-down={monster.hp <= 0}>
-                <span>
+                <span className="fighter-name">
                   <Entity kind={monster.kind} /> {monsterName(monster, view.monsters)}
                 </span>
                 <span className="muted">
                   {monster.hp}/{monster.maxHp} PV
+                </span>
+                <span className="hp">
+                  <i
+                    style={{
+                      width: `${Math.max(0, (monster.hp / monster.maxHp) * 100)}%`,
+                    }}
+                  />
                 </span>
               </div>
             ))}
@@ -355,7 +381,12 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
                 <button
                   key={monster.id}
                   type="button"
-                  onClick={() => act({ type: 'attack', target: monster.id })}
+                  onClick={() =>
+                    act({
+                      type: 'attack',
+                      target: monster.id,
+                    })
+                  }
                 >
                   Attaquer {monsterName(monster, view.monsters)}
                 </button>
@@ -398,15 +429,15 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
         <section className="panel" aria-label="Dernière manche">
           <h2>Manche {view.lastRound.round}</h2>
           <ul className="log">
+            {view.lastRound.effects.map((effect) => (
+              // Chaque combattant n'agit qu'une fois par manche : ce triplet identifie l'effet.
+              <li key={`${effect.kind}-${effect.source}-${effect.target}`} data-kind={effect.kind}>
+                {describeEffect(effect, nameOf)}.
+              </li>
+            ))}
             {Object.entries(view.lastRound.actions).map(([heroId, action]) => (
               <li key={heroId}>
                 {nameOf(heroId)} a choisi {ofVerb(describeAction(action, nameOf))}.
-              </li>
-            ))}
-            {view.lastRound.effects.map((effect) => (
-              // Chaque combattant n'agit qu'une fois par manche : ce triplet identifie l'effet.
-              <li key={`${effect.kind}-${effect.source}-${effect.target}`}>
-                {describeEffect(effect, nameOf)}.
               </li>
             ))}
           </ul>
