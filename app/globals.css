@@ -1,26 +1,42 @@
-/* Palette du jeu : toute modification de l'apparence commence ici. */
+/* Palette du jeu : toute modification de l'apparence commence ici. Thème « pierre et or », sombre par défaut. */
 :root {
-    --bg: #f6f1e7;
-    --panel: #fffaf0;
-    --ink: #2b2118;
-    --muted: #7a6a58;
-    --accent: #8a5a2b;
-    --ok: #3f7d3a;
-    --warn: #b5562f;
+    --bg: #1f1a15;
+    --bg-raised: #2a231c;
+    --panel: #342b22;
+    --line: #4d4031;
+    --ink: #f1e6d3;
+    --muted: #b2a28a;
+    --accent: #e0b45a;
+    --accent-dark: #a77a2c;
+    --on-accent: #2a1d08;
+    --ok: #7fb069;
+    --warn: #e0806a;
+    --danger: #b8463a;
     --radius: 12px;
-    font-family: system-ui, sans-serif;
+    --font-ui: var(--font-texte), system-ui, sans-serif;
+    --font-display: var(--font-titre), Georgia, serif;
+    font-family: var(--font-ui);
+    font-size: 17px;
     color: var(--ink);
     background: var(--bg);
+    color-scheme: dark;
 }
 
-/* Variante appliquée lorsque le système de l'utilisateur est en thème sombre. */
-@media (prefers-color-scheme: dark) {
+/* Variante appliquée lorsque le système de l'utilisateur est en thème clair. */
+@media (prefers-color-scheme: light) {
     :root {
-        --bg: #1d1915;
-        --panel: #28221c;
-        --ink: #f2e8da;
-        --muted: #b3a38f;
-        --accent: #d79b5b;
+        --bg: #f1ebe0;
+        --bg-raised: #e8dfd0;
+        --panel: #fffaf0;
+        --line: #d3c6b0;
+        --ink: #2b2118;
+        --muted: #6f6454;
+        --accent: #8a5a2b;
+        --accent-dark: #6b4420;
+        --on-accent: #fffaf0;
+        --ok: #3f7d3a;
+        --warn: #b5562f;
+        color-scheme: light;
     }
 }
 
@@ -29,16 +45,32 @@
 }
 body {
     margin: 0;
-    background: var(--bg);
+    background: radial-gradient(120% 60% at 50% -10%, color-mix(in srgb, var(--accent) 12%, var(--bg)) 0%, var(--bg) 70%) no-repeat, var(--bg);
+    min-height: 100vh;
 }
 main {
-    max-width: 760px;
+    max-width: 780px;
     margin: 0 auto;
-    padding: 24px 16px 48px;
+    padding: 20px 16px 48px;
+}
+h1, h2 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: 0.02em;
 }
 h1 {
     margin: 0 0 4px;
-    font-size: 1.6rem;
+    font-size: 2.1rem;
+    line-height: 1.1;
+}
+h2 {
+    margin: 0 0 8px;
+    font-size: 1.3rem;
+    color: var(--accent);
+}
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
 
 /* Classes utilitaires réutilisées par les modules. */
@@ -50,10 +82,10 @@ h1 {
 }
 .panel {
     background: var(--panel);
+    border: 1px solid var(--line);
     border-radius: var(--radius);
     padding: 16px;
     margin-top: 16px;
-    box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
 }
 .row {
     display: flex;
@@ -62,19 +94,53 @@ h1 {
     align-items: center;
 }
 
-button {
+/* Boutons : principal (or) par défaut ; .link présenté comme un lien. */
+button, a.button {
     font: inherit;
-    border: 0;
+    font-weight: 700;
+    border: 1px solid var(--accent-dark);
     border-radius: 8px;
-    padding: 8px 14px;
-    background: var(--accent);
-    color: white;
+    padding: 8px 16px;
+    background: linear-gradient(color-mix(in srgb, var(--accent) 88%, white), var(--accent));
+    color: var(--on-accent);
+    box-shadow: 0 2px 0 var(--accent-dark);
     cursor: pointer;
 }
+button:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow: 0 1px 0 var(--accent-dark);
+}
 button:disabled {
-    opacity: 0.45;
+    background: var(--bg-raised);
+    color: var(--muted);
+    border-color: var(--line);
+    box-shadow: none;
     cursor: not-allowed;
 }
+a.button {
+    display: inline-block;
+    text-decoration: none;
+}
+button.link {
+    background: none;
+    border: 0;
+    box-shadow: none;
+    color: var(--accent);
+    padding: 0;
+    font-weight: 500;
+}
+button.danger {
+    background: linear-gradient(#d4664d, var(--danger));
+    border-color: #7b2c1d;
+    box-shadow: 0 2px 0 #6d2517;
+    color: white;
+}
+button.secondary {
+    background: transparent;
+    color: var(--accent);
+    box-shadow: none;
+}
+
 /* Entités du jeu (couche de thème). */
 .entity {
     display: inline-flex;
@@ -99,29 +165,42 @@ input {
     font: inherit;
     padding: 8px 10px;
     border-radius: 8px;
-    border: 1px solid var(--muted);
-    background: transparent;
+    border: 1px solid var(--line);
+    background: var(--bg-raised);
     color: inherit;
 }
 
-/* Écran du Village. */
+/* Écran du Village : ressources en cartes. */
 .stock {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
+    gap: 10px;
+    background: none;
+    border: 0;
+    padding: 0;
 }
 .stock div {
-    font-size: 1.3rem;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 1.7rem;
+    font-weight: 700;
+    line-height: 1.2;
     font-variant-numeric: tabular-nums;
 }
 .stock small {
     display: block;
-    font-size: 0.8rem;
-    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: var(--ok);
 }
 .buildings {
     display: grid;
-    gap: 12px;
+    gap: 10px;
+    background: none;
+    border: 0;
+    padding: 0;
 }
 .building {
     display: flex;
@@ -129,54 +208,108 @@ input {
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px;
+}
+.building .name {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+.badge-icon {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: var(--bg);
+    border: 1px solid var(--accent-dark);
+    font-size: 1.6rem;
+}
+.level {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 1px 8px;
+    border-radius: 99px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--accent);
+}
+.cost {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+.cost[data-short='true'] {
+    color: var(--warn);
 }
 
 /* Navigation de l'espace de jeu. */
 .nav {
     display: flex;
-    gap: 16px;
+    gap: 4px;
     align-items: center;
     flex-wrap: wrap;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid color-mix(in srgb, var(--muted) 30%, transparent);
+    margin-bottom: 20px;
+    padding: 6px;
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: 10px;
 }
 .nav a {
-    color: var(--ink);
+    color: var(--muted);
     text-decoration: none;
+    font-weight: 500;
+    padding: 7px 11px;
+    border-radius: 7px;
+}
+.nav a:hover {
+    color: var(--ink);
 }
 .nav a[aria-current="page"] {
+    background: var(--panel);
     color: var(--accent);
-    font-weight: 600;
-}
-
-/* Bouton présenté comme un lien. */
-button.link {
-    background: none;
-    color: var(--accent);
-    padding: 0;
+    box-shadow: inset 0 -2px 0 var(--accent);
 }
 
 /* Indicateur de connexion temps réel. */
-.status { font-size: 0.85rem; color: var(--muted); }
+.status { font-size: 0.85rem; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+.status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 .status[data-status='open'] { color: var(--ok); }
 .status[data-status='reconnecting'] { color: var(--warn); }
 
 /* Écrans du Donjon. */
 .games, .log { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
-.games li { display: flex; justify-content: space-between; gap: 12px; }
+.games li { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .heroes, .monsters { display: grid; gap: 8px; }
-.fighter { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.fighter[data-down='true'] { opacity: 0.45; text-decoration: line-through; }
-.ok { font-size: 0.85rem; color: var(--ok); }
+.heroes { background: none; border: 0; padding: 0; }
+.fighter { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.fighter[data-turn='true'] { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent); }
+.fighter[data-down='true'] { opacity: 0.45; filter: grayscale(1); }
+.fighter[data-down='true'] .fighter-name { text-decoration: line-through; }
+.fighter-name { font-weight: 700; }
+.fighter-tags { display: flex; gap: 6px; align-items: center; }
+.hp { grid-column: 1 / -1; height: 8px; border-radius: 99px; background: var(--bg); overflow: hidden; }
+.hp > i { display: block; height: 100%; background: linear-gradient(90deg, #4f7d3d, var(--ok)); }
+.monsters .hp > i { background: linear-gradient(90deg, #8f332a, #c8553d); }
+.ok { font-size: 0.75rem; padding: 1px 8px; border-radius: 99px; background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-.countdown { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--accent); }
+.countdown { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--accent); font-size: 1.1rem; }
+.log li { padding: 6px 10px; border-left: 3px solid var(--line); background: var(--bg-raised); border-radius: 0 6px 6px 0; color: var(--muted); }
+.log li[data-kind] { color: var(--ink); }
+.log li[data-kind='damage'] { border-left-color: var(--danger); }
+.log li[data-kind='heal'] { border-left-color: var(--ok); }
+
 
 /* Écran du Classement. */
 .ranking { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-.ranking th, .ranking td { padding: 6px 8px; text-align: left; }
-.ranking tbody tr { border-top: 1px solid color-mix(in srgb, var(--muted) 25%, transparent); }
-.ranking tr[aria-current='true'] { font-weight: 600; color: var(--accent); }
+.ranking th, .ranking td { padding: 8px; text-align: left; }
+.ranking th { font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.ranking tbody tr { border-top: 1px solid var(--line); }
+.ranking tr[aria-current='true'] { font-weight: 700; color: var(--accent); }
 
 /* Marché */
 .offers { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
@@ -190,5 +323,6 @@ input.amount { width: 5em; }
 .messages li[data-mine] strong { color: var(--accent); }
 .presence { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
 
-/* Mes données : un lien présenté comme un bouton */
-a.button { display: inline-block; padding: 8px 14px; border-radius: 8px; background: var(--accent); color: white; text-decoration: none; }
+@media (prefers-reduced-motion: no-preference) {
+    .hp > i { transition: width 0.4s ease; }
+}
