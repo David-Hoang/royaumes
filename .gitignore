@@ -45,3 +45,6 @@ next-env.d.ts
 
 # Le modèle des variables d'environnement, lui, est versionné.
 !.env.example
+
+# Cours
+/cours
