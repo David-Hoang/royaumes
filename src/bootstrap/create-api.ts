@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { createAchievementsModule } from '@/modules/achievements'
 import { createDungeonModule } from '@/modules/dungeon'
 import { createMarketModule } from '@/modules/market'
 import { createRankingModule } from '@/modules/ranking'
@@ -76,6 +77,8 @@ export function createApi({
   const realm = remoteRealm ?? createRealmModule({ store, clock })
   const dungeon = createDungeonModule({ store, db, projections, clock })
   const ranking = createRankingModule({ db, projections })
+  const achievements = createAchievementsModule({ db, projections })
+
   // Le Marché déclenche la distribution après ses commandes et ses consultations.
   const market = createMarketModule({
     store,
@@ -96,6 +99,7 @@ export function createApi({
       dungeon.personalData,
       market.personalData,
       ranking.personalData,
+      achievements.personalData,
       tavern.personalData,
       createIdentityPersonalData(db),
     ],
@@ -111,6 +115,7 @@ export function createApi({
     realm.channelPolicy,
     dungeon.channelPolicy,
     ranking.channelPolicy,
+    achievements.channelPolicy,
     market.channelPolicy,
     tavern.channelPolicy,
   ]
@@ -173,6 +178,8 @@ export function createApi({
   app.use('/realm/*', requireUser(auth))
   app.use('/dungeon/*', requireUser(auth))
   app.use('/ranking/*', requireUser(auth))
+  app.use('/achievements', requireUser(auth))
+  app.use('/achievements/*', requireUser(auth))
   app.use('/market/*', requireUser(auth))
   app.use('/tavern/*', requireUser(auth))
   app.use('/account', requireUser(auth))
@@ -186,6 +193,7 @@ export function createApi({
     .route('/realm', realm.api)
     .route('/dungeon', dungeon.api)
     .route('/ranking', ranking.api)
+    .route('/achievements', achievements.api)
     .route('/market', market.api)
     .route('/tavern', tavern.api)
     .route('/account', createPrivacyApi(privacy))
