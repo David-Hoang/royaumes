@@ -326,3 +326,12 @@ input.amount { width: 5em; }
 @media (prefers-reduced-motion: no-preference) {
     .hp > i { transition: width 0.4s ease; }
 }
+/* Hauts faits : cartes en grille, grisées tant qu'elles ne sont pas obtenues. */
+.achievements { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.achievement { background: var(--bg-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+.achievement h2 { margin: 0 0 4px; font-size: 1.05rem; }
+.achievement[data-unlocked='true'] { border-color: var(--accent); }
+.achievement[data-unlocked='false'] { opacity: 0.55; filter: grayscale(1); }
+.achievement-state { margin: 8px 0 4px; font-weight: 700; }
+.achievement[data-unlocked='true'] .achievement-state { color: var(--accent); }
+.achievement progress { width: 100%; height: 8px; accent-color: var(--accent); }
