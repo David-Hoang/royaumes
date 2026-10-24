@@ -64,6 +64,7 @@ drizzle/              Migrations de la base de données
 perf/                 Budget de performance et résultats des tests de charge
 docs/
   adr/                Décisions d'architecture
+  evaluation/         Fiche de cadrage de l'évaluation
   qualite/            Dette technique et revues
   rgpd/               Registre des traitements et revue de conformité
   architecture.md     Description de l'architecture (modèle C4)
@@ -81,6 +82,8 @@ Un module n'est accessible depuis l'extérieur que par ses entrées publiques : 
 | `ranking` | Classement des joueurs, construit à partir des événements du Village et du Donjon | `/api/ranking` |
 | `market` | Marché : échanges de ressources entre joueurs, par une saga orchestrée | `/api/market` |
 | `tavern` | Taverne : salon de discussion commun et présence des joueurs, sans Event Sourcing | `/api/tavern` |
+| `achievements` | Hauts faits : distinctions gagnées à des seuils (victoires, expéditions, améliorations, or), construites à partir des événements du Donjon et du Village | `/api/achievements` |
+
 
 ## Temps réel
 
@@ -89,15 +92,13 @@ Les changements sont diffusés aux navigateurs par des Server-Sent Events, à l'
 la règle du module concerné. Le canal `village-<joueur>` n'est ainsi accessible qu'au
 propriétaire du village, et le canal `dungeon-<expédition>` aux seuls membres de l'expédition.
 
-La plupart des canaux correspondent à un flux du journal d'événements. Les canaux `ranking`
-et `market` sont des canaux globaux : ils suivent, dans tout le journal, les événements qui
-modifient le classement ou la liste des offres, et ne transmettent que ceux qui sont
+La plupart des canaux correspondent à un flux du journal d'événements. Les canaux `ranking`, `market` et `achievements` sont des canaux globaux : ils suivent, dans tout le journal, les événements qui modifient le classement, la liste des offres ou les compteurs des hauts faits, et ne transmettent que ceux qui sont
 enregistrés après leur ouverture.
 
 Le canal `tavern` ne lit pas le journal, mais la table des messages de la Taverne : il
 transmet chaque nouveau message, avec son contenu, à tous les joueurs connectés.
 
-Les canaux du Donjon, du Classement et du Marché sont discrets : ils ne transmettent que la position,
+Les canaux du Donjon, du Classement, du Marché et des Hauts faits sont discrets : ils ne transmettent que la position,
 le type et la version des événements, et chaque navigateur relit sa propre vue, filtrée
 par le serveur.
 
@@ -145,6 +146,11 @@ Les messages de la Taverne sont conservés trente jours, et la présence d'un jo
 minutes après son dernier signal. Ces durées sont appliquées à chaque lecture, et chaque jour
 par la tâche planifiée `/api/cron/daily`.
 
+Le module Hauts faits conserve les compteurs d'un joueur (expéditions jouées et gagnées,
+améliorations, or rapporté), rattachés à son identifiant, sans aucun nom. L'export les présente
+dans la section `achievements`, et l'effacement du compte les supprime.
+
+
 ## Base de données
 
 En développement, la base PostgreSQL est fournie par PGlite et conservée dans le répertoire
@@ -153,7 +159,7 @@ démarrage. Pour repartir d'une base vide, arrêtez le serveur et supprimez le r
 
 Les tests utilisent une base PGlite en mémoire, recréée pour chaque fichier de test.
 
-Le classement et la liste des expéditions ouvertes sont des modèles de lecture, tenus à jour
+Le classement, la liste des expéditions ouvertes et les compteurs des hauts faits sont des modèles de lecture, tenus à jour
 par des projections à partir du journal d'événements (ADR 0006). Chaque projection est
 rattrapée à la consultation, et reconstruite automatiquement lorsque sa version change :
 une modification qui change le contenu de ses tables doit donc augmenter sa version.
@@ -191,6 +197,8 @@ sans la première ; sans la seconde, la route des tâches quotidiennes reste fer
 - [Registre des traitements](docs/rgpd/registre-traitements.md)
 - [Revue de conformité au RGPD](docs/rgpd/revue-conformite.md)
 - [Bilan technique](docs/bilan-technique.md)
+- [Fiche de cadrage de l'évaluation](docs/evaluation/fiche-cadrage.md)
+
 
 ## Conventions
 
@@ -220,6 +228,12 @@ quotidienne.
 L'effacement d'un compte parcourt tout le journal d'événements : sa durée croît avec la taille
 du journal. L'identifiant d'un joueur effacé reste dans le journal, sous une forme
 pseudonymisée : plus aucune table ne le relie à une personne (ADR 0008).
+
+Les hauts faits ne sont pas stockés : ils sont calculés à chaque lecture à partir des compteurs,
+donc leur date d'obtention n'est pas conservée (ADR 0010). Les compteurs dépendent de la forme
+des événements du Donjon et du Village : un événement modifié sans réexamen de ses lecteurs les
+fausserait sans signal d'erreur (ADR 0011). La première lecture après la création des tables
+rejoue tout le journal, et sa durée croît avec sa taille.
 
 Le service Village extrait n'est pas prêt pour la production : ses migrations, la pagination
 de son flux publié et la distribution de sa boîte d'envoi restent à traiter. Ces limites, et
