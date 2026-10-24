@@ -42,6 +42,8 @@ function AchievementCard({ achievement: a }: { achievement: AchievementStatus })
   )
 }
 
+// DETTE TECHNIQUE (docs/qualite/dette-technique.md, DT-014) : cet écran est vérifié à la
+// main, sans test automatisé.
 /** Écran des Hauts faits : la progression du joueur connecté vers chaque distinction. */
 export function AchievementsScreen() {
   // undefined : chargement en cours.
@@ -67,6 +69,8 @@ export function AchievementsScreen() {
 
   // TEMPS RÉEL : le canal annonce un événement qui peut modifier les compteurs. La liste est
   // relue jusqu'à ce que la projection ait atteint la position de cet événement.
+  // DETTE TECHNIQUE (docs/qualite/dette-technique.md, DT-013) : la liste est relue pour
+  // tout événement annoncé, y compris ceux des autres joueurs.
   const follow = useCallback(
     async (event: ChannelEvent) => {
       wanted.current = Math.max(wanted.current, event.position)

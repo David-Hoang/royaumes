@@ -18,6 +18,8 @@ beforeEach(async () => {
   reader = createDrizzleStatsReader(db, createProjectionRunner(db))
 })
 
+// DETTE TECHNIQUE (docs/qualite/dette-technique.md, DT-012) : ces événements sont écrits à
+// la main ; ils ne suivent pas automatiquement la forme réelle de ceux du Donjon et du Village.
 // Événements du Donjon et du Village, réduits aux champs lus par les Hauts faits.
 const created = (hostId: string): NewEvent => ({ type: 'GameCreated', data: { hostId } })
 const joined = (playerId: string): NewEvent => ({ type: 'PlayerJoined', data: { playerId } })

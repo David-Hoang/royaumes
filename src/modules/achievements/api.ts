@@ -9,6 +9,8 @@ import type { AchievementsService } from './application/achievements-service'
  * les hauts faits d'un autre joueur.
  */
 export function createAchievementsApi(service: AchievementsService) {
+  // DETTE TECHNIQUE (docs/qualite/dette-technique.md, DT-011) : aucune limitation du
+  // débit des lectures ; chaque lecture rattrape la projection.
   return new Hono<AppEnv>().get('/', async (c) => c.json(await service.forPlayer(c.var.userId)))
 }
 
