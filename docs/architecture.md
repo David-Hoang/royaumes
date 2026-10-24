@@ -12,7 +12,7 @@ dans le même commit que la modification qu'ils décrivent.
 ```mermaid
 flowchart TB
   joueur["Joueur<br/>[Personne]<br/>Joue depuis un navigateur,<br/>sur ordinateur ou sur téléphone"]
-  royaumes["Royaumes<br/>[Système logiciel]<br/>Jeu web multijoueur : village, donjon,<br/>classement, marché et taverne"]
+  royaumes["Royaumes<br/>[Système logiciel]<br/>Jeu web multijoueur : village, donjon,<br/>classement, marché, taverne et hauts faits"]
   joueur -->|"Gère son village, joue avec les autres joueurs,<br/>reçoit les changements en direct (HTTPS)"| royaumes
 ```
 
@@ -28,7 +28,7 @@ flowchart TB
   subgraph royaumes["Système Royaumes"]
     web["Interface web<br/>[Conteneur : React, dans le navigateur]<br/>Pages du jeu et page de connexion"]
     serveur["Application serveur<br/>[Conteneur : Next.js et Hono, fonctions Vercel, Francfort]<br/>Rendu des pages, API JSON,<br/>authentification, flux temps réel"]
-    base[("Base de données<br/>[Conteneur : PostgreSQL, Neon, Francfort]<br/>Schéma platform : journal, points de reprise,<br/>boîte d'envoi, registre des effacements<br/>Schéma identity : comptes et sessions<br/>Schémas ranking, dungeon et market :<br/>modèles de lecture<br/>Schéma tavern : messages et présence")]
+    base[("Base de données<br/>[Conteneur : PostgreSQL, Neon, Francfort]<br/>Schéma platform : journal, points de reprise,<br/>boîte d'envoi, registre des effacements<br/>Schéma identity : comptes et sessions<br/>Schémas ranking, dungeon, market<br/>et achievements : modèles de lecture<br/>Schéma tavern : messages et présence")]
   end
   joueur -->|"Utilise"| web
   web -->|"Pages, appels de l'API avec le cookie de session<br/>(HTTPS, JSON)"| serveur
@@ -44,7 +44,7 @@ flowchart TB
 
 Le journal d'événements est la seule source de vérité des modules Village, Donjon et Marché.
 La Taverne n'enregistre pas d'événements : ses tables sont sa propre source de vérité (ADR 0008).
-Les tables des schémas `ranking`, `dungeon` et `market` sont des modèles de lecture, dérivés du journal par des projections : elles peuvent
+Les tables des schémas `ranking`, `dungeon`, `market` et `achievements` sont des modèles de lecture, dérivés du journal par des projections : elles peuvent
 être vidées puis reconstruites à tout moment, sans perte d'information.
 
 L'interface web ne communique jamais directement avec la base : toute lecture et toute
@@ -67,6 +67,7 @@ flowchart TB
     ranking["ranking<br/>Classement : projection,<br/>lecture, API, canal global"]
     market["market<br/>Marché : orchestrateur de la saga,<br/>projection des offres, API, canal global"]
     tavern["tavern<br/>Taverne : messages et présence<br/>en tables, API, canal à source propre"]
+    achievements["achievements<br/>Hauts faits : domaine pur, service,<br/>projection des compteurs, API, canal global"]
   end
   subgraph platform["src/platform"]
     auth["auth<br/>Port AuthPort,<br/>adaptateur Better Auth"]
@@ -83,13 +84,14 @@ flowchart TB
   route --> server
   pages --> server
   server --> createapi
-  createapi --> system & realm & dungeon & ranking & market & tavern & auth & http & realtime & projection & outbox & privacy & cron
+  createapi --> system & realm & dungeon & ranking & market & tavern & achievements & auth & http & realtime & projection & outbox & privacy & cron
   realm --> store & realtime & http & outbox
   market --> store & projection & realtime & http & outbox
   dungeon --> store & projection & realtime & http
   ranking --> projection & realtime & http
+  achievements --> projection & realtime & http
   tavern --> realtime & http & db
-  realm & dungeon & market & ranking & tavern --> privacy
+  realm & dungeon & market & ranking & tavern & achievements --> privacy
   privacy --> store
   auth --> privacy
   realtime --> store & http
@@ -104,12 +106,20 @@ flowchart TB
 
 Une flèche signifie « dépend de ». Le diagramme ne montre que les dépendances principales :
 `server.ts` crée également lui-même la base, le journal et l'adaptateur d'authentification,
-qu'il transmet à `create-api.ts`. Les modules `dungeon` et `ranking` écrivent directement
+qu'il transmet à `create-api.ts`. Les modules `dungeon`, `ranking` et `achievements` écrivent directement
 dans leurs propres tables, au sein de la transaction fournie par le moteur des projections.
 
 Le module `ranking` lit des événements du Village et du Donjon, mais n'importe aucun de leurs
 fichiers en dehors de leurs contrats : il ne dépend que de leur langage publié, c'est-à-dire
 du nom et des données de leurs événements, ainsi que du préfixe de leurs flux.
+
+Le module `achievements` communique de la même façon que le Classement : sa projection lit
+quatre événements du Donjon et du Village (`GameCreated`, `PlayerJoined`, `GameEnded` et
+`BuildingUpgraded`) et n'importe que leurs `contracts.ts`, pour obtenir les préfixes de leurs
+flux. La communication est à sens unique : le module n'écrit chez personne, donc le Donjon et
+le Village n'ont pas été modifiés. Chaque événement est appliqué une fois, car la projection
+avance son point de reprise dans la même transaction que les compteurs. La cohérence est
+différée : un haut fait peut apparaître quelques secondes après l'action (ADR 0010 et 0011).
 
 Le module `market` modifie les villages sans jamais importer le code du Village : il enregistre
 des messages dans la boîte d'envoi, que le distributeur remet aux gestionnaires du Village.
@@ -140,6 +150,39 @@ de la plateforme ou d'un module, et chaque module qui conserve des données déc
 données personnelles.
 
 Seule la racine de composition connaît à la fois la plateforme et l'ensemble des modules.
+
+## Parcours d'une opération entre modules : consulter ses hauts faits
+
+Une expédition terminée au Donjon fait progresser les hauts faits du joueur, sans que le
+Donjon connaisse le module Hauts faits. Le journal est le seul lien entre les deux.
+
+```mermaid
+sequenceDiagram
+  actor J as Joueur
+  participant D as API Donjon
+  participant S as Journal d'événements
+  participant H as API Hauts faits
+  participant P as Projection achievements
+  participant T as Tables achievements
+
+  J->>D: Joue une manche qui termine l'expédition
+  D->>S: Enregistre GameEnded
+  D-->>J: Résultat de la manche
+
+  J->>H: GET /api/achievements
+  H->>P: Rattrape le journal
+  P->>S: Lit les événements après son point de reprise
+  S-->>P: GameCreated, PlayerJoined, GameEnded
+  P->>T: Met à jour les compteurs et le point de reprise
+  H->>T: Lit les compteurs du joueur
+  T-->>H: Compteurs
+  H->>H: evaluate calcule les hauts faits
+  H-->>J: Hauts faits et progression
+```
+
+La projection est rattrapée à la lecture : aucun processus de fond ne tient les compteurs à
+jour (ADR 0006). Les compteurs et le point de reprise sont écrits dans une même transaction.
+
 
 ## Extraction du Village
 
