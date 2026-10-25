@@ -82,7 +82,7 @@ Un module n'est accessible depuis l'extérieur que par ses entrées publiques : 
 | `ranking` | Classement des joueurs, construit à partir des événements du Village et du Donjon | `/api/ranking` |
 | `market` | Marché : échanges de ressources entre joueurs, par une saga orchestrée | `/api/market` |
 | `tavern` | Taverne : salon de discussion commun et présence des joueurs, sans Event Sourcing | `/api/tavern` |
-| `achievements` | Hauts faits : 22 distinctions gagnées à des seuils (victoires, or, niveau des bâtiments, compagnons, offres), rangées par thème et réunies en séries, construites à partir des événements du Donjon, du Village et du Marché | `/api/achievements` |
+| `achievements` | Hauts faits : 28 distinctions gagnées à des seuils (victoires, or, niveau des bâtiments, compagnons, offres), rangées par thème et réunies en séries, construites à partir des événements du Donjon, du Village et du Marché | `/api/achievements` |
 
 
 ## Temps réel
