@@ -6,6 +6,8 @@ import type { AchievementStatus } from './domain/achievements'
 
 export type { AchievementStatus } from './domain/achievements'
 
+export { newlyUnlocked, nextGoal, obtainedFirst } from './domain/achievements'
+
 /** Hauts faits d'un joueur, tels que renvoyés par l'API. */
 export interface PlayerAchievements {
   /**

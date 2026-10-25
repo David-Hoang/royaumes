@@ -30,6 +30,14 @@ export const theme: Record<string, Look> = {
   market: { glyph: '⚖️', label: 'Marché' },
   tavern: { glyph: '🍺', label: 'Taverne' },
   achievements: { glyph: '🎖️', label: 'Hauts faits' },
+  'first-blood': { glyph: '🗡️', label: 'Premier sang' },
+  veteran: { glyph: '🎖️', label: 'Vétéran' },
+  builder: { glyph: '🔨', label: 'Bâtisseur' },
+  fortune: { glyph: '💰', label: 'Fortune' },
+  'first-coins': { glyph: '🪙', label: 'Premières pièces' },
+  'big-fortune': { glyph: '💎', label: 'Grosse fortune' },
+  treasurer: { glyph: '🏦', label: 'Trésorier' },
+  'gold-king': { glyph: '👑', label: "Roi de l'or" },
 }
 
 /** Apparence d'une entité ; une apparence neutre si l'entité n'est pas décrite. */

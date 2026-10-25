@@ -1,6 +1,9 @@
+import { headers } from 'next/headers'
+import { currentUser } from '@/bootstrap/server'
 import { AchievementsScreen } from '@/modules/achievements/ui'
 
-/** Page des Hauts faits. L'accès est déjà réservé aux joueurs connectés par la mise en page. */
-export default function AchievementsPage() {
-  return <AchievementsScreen />
+/** Page des Hauts faits. Le joueur connecté sert à retenir les hauts faits déjà montrés. */
+export default async function AchievementsPage() {
+  const user = await currentUser(await headers())
+  return <AchievementsScreen userId={user?.id ?? ''} />
 }
