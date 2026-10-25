@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
-import { Alegreya_Sans, IM_Fell_English_SC } from 'next/font/google'
+import { Alegreya, IM_Fell_English_SC } from 'next/font/google'
 import type { ReactNode } from 'react'
 import './globals.css'
 
 // Polices du jeu : exposées en variables CSS, utilisées par le thème de globals.css.
 const titre = IM_Fell_English_SC({ weight: '400', subsets: ['latin'], variable: '--font-titre' })
-const texte = Alegreya_Sans({
+const texte = Alegreya({
   weight: ['400', '500', '700'],
+  style: ['normal', 'italic'],
   subsets: ['latin'],
   variable: '--font-texte',
 })
