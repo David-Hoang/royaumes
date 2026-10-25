@@ -14,9 +14,9 @@ revues. Il s'adresse à la personne qui reprendrait le projet.
 | --- | --- |
 | Modules métier | 7 : `system`, `realm`, `dungeon`, `market`, `ranking`, `tavern`, `achievements` (6 à `td11-fin`) |
 | Briques de la plateforme | 9 : `auth`, `cron`, `db`, `event-store`, `http`, `outbox`, `privacy`, `projection`, `realtime` |
-| Lignes de code, hors tests | 8 503 dans `src/` (7 906 à `td11-fin`) |
-| Fichiers de test, nombre de tests | 38 fichiers, 253 tests (33 fichiers, 232 tests à `td11-fin`) |
-| Commits | 97 (76 à `td11-fin`) |
+| Lignes de code, hors tests | 9 168 dans `src/` (7 906 à `td11-fin`) |
+| Fichiers de test, nombre de tests | 38 fichiers, 275 tests (33 fichiers, 232 tests à `td11-fin`) |
+| Commits | 114 (76 à `td11-fin`) |
 | Hébergement | Vercel (Francfort), base Neon (Francfort) |
 
 | Module | Stockage | Lignes, hors tests |
@@ -26,7 +26,7 @@ revues. Il s'adresse à la personne qui reprendrait le projet.
 | `market` | Event Sourcing, projection des offres, saga | 1 271 |
 | `ranking` | Projection du journal | 459 |
 | `tavern` | Tables ordinaires | 678 |
-| `achievements` | Tables ordinaires tenues par une projection du journal | 520 |
+| `achievements` | Tables ordinaires tenues par une projection du journal | 1 154 |
 | `system` | Aucun | 73 |
 
 ## 2. Les décisions d'architecture
@@ -42,34 +42,35 @@ revues. Il s'adresse à la personne qui reprendrait le projet.
 | 0007 | Saga orchestrée et boîte d'envoi | Échanges du Marché ; reprise de la saga après une panne du service Village | Tient. Les messages abandonnés sont examinables avec `scripts/dead-letters.ts` |
 | 0008 | Taverne sans Event Sourcing, réécriture ciblée du journal | Export et effacement de tous les modules ; ajout du module Hauts faits | Tient. Le contributeur des Hauts faits s'est ajouté sans modifier la plateforme, et un défaut (effacement avant rattrapage de la projection) a été trouvé et corrigé. Coût de l'effacement : croît avec le journal |
 | 0009 | Extraction du Village, préparée mais non déployée | Six tests de contrat | Frontières démontrées. Le service n'est pas déployable en l'état (DT-008 à DT-010) |
-| 0010 | Tables de lecture tenues par une projection pour les Hauts faits | Création du module, migration, déploiement en production | Tient. La date d'obtention d'un haut fait n'est pas conservée |
-| 0011 | Lecture du langage publié du Donjon et du Village par les Hauts faits | Lecture de quatre types d'événements sans modifier les modules qui les écrivent | Tient. Le couplage à la forme des événements n'est protégé que par des tests écrits à la main (DT-012) |
+| 0010 | Tables de lecture tenues par une projection pour les Hauts faits | Création du module, puis trois ajouts de compteurs (bâtiments, compagnons, Marché) par trois migrations et trois versions de la projection | Tient : un compteur de plus ne touche à aucun autre module. Coût : une colonne, une migration et une reconstruction de la projection à chaque fois ; la date d'obtention n'est pas conservée |
+| 0011 | Lecture du langage publié du Donjon, du Village et du Marché par les Hauts faits | Lecture de huit types d'événements de trois modules sans les modifier | Tient. Le couplage à la forme des événements n'est protégé que par des tests écrits à la main (DT-012) ; des tests de cohérence relient les seuils aux constantes du Donjon et du Village |
 
 ## 3. La qualité
 
 | Caractéristique | Indicateur | Valeur | Appréciation |
 | --- | --- | --- | --- |
-| Adéquation fonctionnelle | Tests réussis ; couverture globale des lignes | 253 tests sur 253 (232 à `td11-fin`) ; 73,98 % des lignes (75,00 % à `td11-fin`) | Couverture en légère baisse : l'écran des Hauts faits n'est pas testé automatiquement (DT-014) |
+| Adéquation fonctionnelle | Tests réussis ; couverture globale des lignes | 275 tests sur 275 (232 à `td11-fin`) ; 73,77 % des lignes (75,00 % à `td11-fin`) | Couverture en légère baisse : l'écran des Hauts faits n'est pas testé automatiquement (DT-014) |
 | Efficacité des performances | Débit et p99 des lectures ; respect du budget | De 576 à 1 050 requêtes par seconde, p99 de 33 à 57 ms, aucune erreur, pour un budget de 500 ms (mesures de `td11-fin`) | Budget largement respecté. Le module Hauts faits n'a pas fait l'objet d'un test de charge |
 | Fiabilité | Tests de concurrence, de reprise et d'idempotence ; messages abandonnés | Acceptations simultanées au Marché, reprise après la panne du service Village, messages en double, lectures répétées des projections | Les cas de panne et de doublon sont couverts. Les messages abandonnés se détectent avec `scripts/dead-letters.ts` |
-| Sécurité | Exigences des revues de sécurité | Hauts faits : 13 exigences, 11 conformes, 2 risques acceptés. Autres revues : voir la section 5 | Revue du module à jour ; les revues précédentes ne sont pas terminées |
-| Maintenabilité | Règles d'architecture ; fonctions d'aptitude ; couverture | 0 violation sur 157 modules et 502 dépendances ; 2 fonctions d'aptitude ; 73,98 % des lignes | Les règles d'architecture sont respectées par le module ajouté, sans modification de leur configuration |
+| Sécurité | Exigences des revues de sécurité | Hauts faits : 15 exigences, 12 conformes, 3 risques acceptés. Autres revues : voir la section 5 | Revue du module à jour ; les revues précédentes ne sont pas terminées |
+| Maintenabilité | Règles d'architecture ; fonctions d'aptitude ; couverture | 0 violation sur 157 modules et 506 dépendances ; 2 fonctions d'aptitude ; 73,77 % des lignes | Les règles d'architecture sont respectées par le module ajouté, sans modification de leur configuration. Le module ajoute des tests de cohérence entre ses seuils et les constantes des autres modules |
 | Flexibilité | Extraction d'un module ; changement de base entre local et production | Village extrait en service autonome (ADR 0009) ; PGlite en local et en test, Neon en production, avec les mêmes migrations | Le nouveau module s'ajoute en créant un répertoire et en le branchant dans `create-api.ts` |
 
 ## 4. La dette technique
 
 | Indicateur | Valeur |
 | --- | --- |
-| Entrées consignées | 14 (10 à `td11-fin`) |
+| Entrées consignées | 16 (10 à `td11-fin`) |
 | Entrées remboursées, dont à l'échéance prévue | 7, toutes à l'échéance prévue (TD3, TD4, TD7, TD8, TD11) |
-| Entrées ouvertes | 7 : DT-008 à DT-010 (service Village), DT-011 à DT-014 (Hauts faits) |
+| Entrées ouvertes | 9 : DT-008 à DT-010 (service Village), DT-011 à DT-016 (Hauts faits) |
 
 Analyse : la dette remboursée l'a toujours été à l'échéance annoncée. Les trois entrées du
 service Village sont sans conséquence en production, puisque le service n'est pas déployé : elles
-doivent être remboursées avant tout déploiement. Les quatre entrées des Hauts faits sont des
-limites de charge ou de test sans effet sur le fonctionnement actuel. La plus risquée est DT-012 :
-des tests de projection écrits à la main ne détecteraient pas une modification des événements du
-Donjon ou du Village.
+doivent être remboursées avant tout déploiement. Les six entrées des Hauts faits sont des
+limites de charge, de test ou d'ergonomie sans effet sur le fonctionnement actuel. La plus risquée
+est DT-012 : des tests de projection écrits à la main ne détecteraient pas une modification des
+événements du Donjon, du Village ou du Marché. DT-015 (échanges entre comptes complices) n'a
+d'effet que si un haut fait donne un jour un avantage dans le jeu.
 
 ## 5. Les revues
 
@@ -79,7 +80,7 @@ Donjon ou du Village.
 | Sécurité du Donjon | 14 | Constats non rédigés | Non évalué | Rédiger les constats |
 | Sécurité du Marché | 10 | Constats non rédigés | Non évalué | Rédiger les constats |
 | Conformité au RGPD | 10 | Constats non rédigés | Non évalué | Rédiger les constats |
-| Sécurité des Hauts faits | 13 | 11 | 2 (H8 et H13) | Limitation du débit des lectures à étudier (DT-011) |
+| Sécurité des Hauts faits | 15 | 12 | 3 (H8, H13 et H15) | Limitation du débit des lectures à étudier (DT-011) ; échanges entre comptes complices (DT-015) |
 
 Les quatre revues précédentes ont été préparées avec leurs exigences et leurs vérifications, mais
 leurs constats n'ont pas été rédigés : leur résultat n'est pas connu.
@@ -90,7 +91,7 @@ leurs constats n'ont pas été rédigés : leur résultat n'est pas connu.
 | --- | --- | --- | --- |
 | 1 | La charge de la base croît avec le nombre de joueurs connectés, chaque flux relisant le journal deux fois par seconde | Le p99 des lectures approche 500 ms, ou les quotas de l'offre gratuite de Neon sont atteints | Espacer la relecture, ou la remplacer par une notification partagée entre instances |
 | 2 | La reconstruction d'une projection a lieu pendant une consultation, dont la durée est limitée sur Vercel | Une reconstruction approche la durée maximale d'une fonction | Reconstruire par lots, ou dans une tâche dédiée |
-| 3 | Le Classement et les Hauts faits dépendent de la forme des événements du Donjon et du Village : un événement modifié fausserait leurs compteurs sans erreur | Modification d'un événement publié | Des tests de contrat sur la forme des événements publiés (DT-012) |
+| 3 | Le Classement et les Hauts faits dépendent de la forme des événements du Donjon, du Village et du Marché : un événement modifié fausserait leurs compteurs sans erreur | Modification d'un événement publié | Des tests de contrat sur la forme des événements publiés (DT-012) |
 | 4 | Les revues de sécurité et de conformité précédentes n'ont pas de constats | Une faille ou un manquement non détecté | Rédiger les constats de chaque revue avant toute mise en service ouverte au public |
 
 ## 7. Conclusion
