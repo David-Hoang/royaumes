@@ -15,6 +15,20 @@ export const playerStats = achievements.table('player_stats', {
   sawmillLevel: integer('sawmill_level').notNull().default(0),
   quarryLevel: integer('quarry_level').notNull().default(0),
   mineLevel: integer('mine_level').notNull().default(0),
+  // Plus grand nombre de compagnons d'une expédition gagnée, par niveau de difficulté.
+  // Ajoutés par la version 3 de la projection.
+  easyCompanions: integer('easy_companions').notNull().default(0),
+  hardCompanions: integer('hard_companions').notNull().default(0),
+})
+
+/**
+ * Difficulté et nombre de compagnons de chaque expédition, retenus jusqu'à sa fin : l'événement
+ * GameEnded ne les contient pas, alors qu'ils servent à attribuer les hauts faits d'équipe.
+ */
+export const games = achievements.table('games', {
+  gameId: text('game_id').primaryKey(),
+  difficulty: text('difficulty').notNull().default('easy'),
+  companions: integer('companions').notNull().default(0),
 })
 
 /**

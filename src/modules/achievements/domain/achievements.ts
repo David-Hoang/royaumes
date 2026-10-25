@@ -31,6 +31,8 @@ export const EMPTY_STATS: Stats = {
   sawmillLevel: 0,
   quarryLevel: 0,
   mineLevel: 0,
+  easyCompanions: 0,
+  hardCompanions: 0,
 }
 
 function statusOf(def: AchievementDef, stats: Stats): AchievementStatus {

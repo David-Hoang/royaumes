@@ -88,6 +88,8 @@ describe('Présentation des hauts faits', () => {
         sawmillLevel: 10,
         quarryLevel: 10,
         mineLevel: 10,
+        easyCompanions: 3,
+        hardCompanions: 3,
       }),
     )
     expect(nextGoal(all)).toBeNull()

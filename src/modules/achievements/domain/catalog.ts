@@ -14,6 +14,9 @@ export const COUNTERS = [
   'sawmillLevel',
   'quarryLevel',
   'mineLevel',
+  // Plus grand nombre de compagnons d'une expédition gagnée, par niveau de difficulté.
+  'easyCompanions',
+  'hardCompanions',
 ] as const
 export type Counter = (typeof COUNTERS)[number]
 
@@ -37,6 +40,8 @@ export const SERIES = {
   quarry: 'Carrière',
   mine: 'Mine',
   gold: 'Or rapporté',
+  'easy-companions': 'Facile, avec compagnons',
+  'hard-companions': 'Difficile, avec compagnons',
 } as const
 export type SeriesId = keyof typeof SERIES
 
@@ -205,5 +210,61 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = [
     series: 'gold',
     counter: 'gold',
     threshold: 2000,
+  },
+  // Gagner une expédition avec 1, 2 puis 3 compagnons (4 héros au maximum), en facile puis
+  // en difficile.
+  {
+    id: 'easy-1',
+    name: 'Bien entouré',
+    description: 'Gagner une expédition facile avec 1 compagnon.',
+    category: 'dungeon',
+    series: 'easy-companions',
+    counter: 'easyCompanions',
+    threshold: 1,
+  },
+  {
+    id: 'easy-2',
+    name: 'Petite troupe',
+    description: 'Gagner une expédition facile avec 2 compagnons.',
+    category: 'dungeon',
+    series: 'easy-companions',
+    counter: 'easyCompanions',
+    threshold: 2,
+  },
+  {
+    id: 'easy-3',
+    name: 'Escouade complète',
+    description: 'Gagner une expédition facile avec 3 compagnons.',
+    category: 'dungeon',
+    series: 'easy-companions',
+    counter: 'easyCompanions',
+    threshold: 3,
+  },
+  {
+    id: 'hard-1',
+    name: 'Brave',
+    description: 'Gagner une expédition difficile avec 1 compagnon.',
+    category: 'dungeon',
+    series: 'hard-companions',
+    counter: 'hardCompanions',
+    threshold: 1,
+  },
+  {
+    id: 'hard-2',
+    name: 'Chef de bande',
+    description: 'Gagner une expédition difficile avec 2 compagnons.',
+    category: 'dungeon',
+    series: 'hard-companions',
+    counter: 'hardCompanions',
+    threshold: 2,
+  },
+  {
+    id: 'hard-3',
+    name: 'Capitaine',
+    description: 'Gagner une expédition difficile avec 3 compagnons.',
+    category: 'dungeon',
+    series: 'hard-companions',
+    counter: 'hardCompanions',
+    threshold: 3,
   },
 ]

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { MAX_HEROES } from '@/modules/dungeon/contracts'
 import { BUILDINGS, MAX_LEVEL } from '@/modules/realm/contracts'
 import { createTestDatabase } from '@/platform/db/client'
 import {
@@ -24,7 +25,10 @@ beforeEach(async () => {
 // DETTE TECHNIQUE (docs/qualite/dette-technique.md, DT-012) : ces événements sont écrits à
 // la main ; ils ne suivent pas automatiquement la forme réelle de ceux du Donjon et du Village.
 // Événements du Donjon et du Village, réduits aux champs lus par les Hauts faits.
-const created = (hostId: string): NewEvent => ({ type: 'GameCreated', data: { hostId } })
+const created = (hostId: string, difficulty?: string): NewEvent => ({
+  type: 'GameCreated',
+  data: difficulty ? { hostId, difficulty } : { hostId },
+})
 const joined = (playerId: string): NewEvent => ({ type: 'PlayerJoined', data: { playerId } })
 const companion: NewEvent = { type: 'CompanionAdded', data: { companionId: 'companion-1' } }
 const ended = (result: 'won' | 'lost', loot: number): NewEvent => ({
@@ -73,6 +77,43 @@ describe('Projection des hauts faits', () => {
     expect(await statsOf('alice')).toMatchObject({ gamesWon: 1 })
   })
 
+  it('retient le nombre de compagnons d’une expédition gagnée, par difficulté', async () => {
+    await store.append('dungeon-g1', 0, [
+      created('alice', 'easy'),
+      companion,
+      companion,
+      ended('won', 40),
+    ])
+    await store.append('dungeon-g2', 0, [
+      created('alice', 'hard'),
+      companion,
+      companion,
+      companion,
+      ended('won', 60),
+    ])
+    expect(await statsOf('alice')).toMatchObject({ easyCompanions: 2, hardCompanions: 3 })
+  })
+
+  it('traite comme facile une expédition dont le niveau est absent, et garde le meilleur', async () => {
+    await store.append('dungeon-g1', 0, [created('alice'), companion, companion, ended('won', 40)])
+    await store.append('dungeon-g2', 0, [created('alice'), companion, ended('won', 40)])
+    expect(await statsOf('alice')).toMatchObject({ easyCompanions: 2, hardCompanions: 0 })
+  })
+
+  it('ne retient rien pour une expédition perdue', async () => {
+    await store.append('dungeon-g1', 0, [created('alice', 'hard'), companion, ended('lost', 10)])
+    expect(await statsOf('alice')).toMatchObject({ easyCompanions: 0, hardCompanions: 0 })
+  })
+
+  it('ne mélange pas les compagnons de deux expéditions en cours', async () => {
+    await store.append('dungeon-g1', 0, [created('alice'), companion, companion])
+    await store.append('dungeon-g2', 0, [created('bob'), companion])
+    await store.append('dungeon-g1', 3, [ended('won', 40)])
+    await store.append('dungeon-g2', 2, [ended('won', 40)])
+    expect(await statsOf('alice')).toMatchObject({ easyCompanions: 2 })
+    expect(await statsOf('bob')).toMatchObject({ easyCompanions: 1 })
+  })
+
   it('retient le plus haut niveau atteint par chaque bâtiment, indépendamment des autres', async () => {
     await store.append('village-carol', 0, [
       upgraded('sawmill', 2),
@@ -90,6 +131,14 @@ describe('Projection des hauts faits', () => {
   it('garde le plus haut niveau atteint, même si un événement plus ancien arrive ensuite', async () => {
     await store.append('village-carol', 0, [upgraded('mine', 10), upgraded('mine', 2)])
     expect(await statsOf('carol')).toMatchObject({ mineLevel: 10 })
+  })
+
+  // Le dernier palier des séries de compagnons est le plus grand nombre de compagnons possible :
+  // le nombre maximal de héros, moins l'hôte.
+  it('fixe le dernier palier des compagnons au nombre maximal de compagnons du Donjon', () => {
+    for (const id of ['easy-3', 'hard-3']) {
+      expect(ACHIEVEMENTS.find((def) => def.id === id)?.threshold).toBe(MAX_HEROES - 1)
+    }
   })
 
   // Un haut fait « maître » demande le niveau maximal du Village : si ce niveau change, le

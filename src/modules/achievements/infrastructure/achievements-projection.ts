@@ -3,7 +3,7 @@ import { GAME_CHANNEL_PREFIX } from '@/modules/dungeon/contracts'
 import { VILLAGE_CHANNEL_PREFIX } from '@/modules/realm/contracts'
 import type { StoredEvent } from '@/platform/event-store/event-store'
 import type { DbTransaction, Projection } from '@/platform/projection/projection'
-import { gamePlayers, playerStats } from './schema'
+import { gamePlayers, games, playerStats } from './schema'
 
 /*
  * Données des événements lus par les Hauts faits. Elles forment le « langage publié »
@@ -12,6 +12,8 @@ import { gamePlayers, playerStats } from './schema'
  */
 interface GameCreatedData {
   hostId: string
+  /** Absente des expéditions enregistrées avant l'introduction des niveaux : facile. */
+  difficulty?: string
 }
 interface PlayerJoinedData {
   playerId: string
@@ -45,17 +47,32 @@ async function recordPlayer(tx: DbTransaction, gameId: string, playerId: string)
  * Projection des hauts faits : met à jour les compteurs des joueurs à partir du journal.
  * Version 1 : première version.
  * Version 2 : ajout du plus haut niveau atteint par chaque bâtiment.
+ * Version 3 : ajout des compagnons des expéditions gagnées, par niveau de difficulté.
  */
 export const achievementsProjection: Projection = {
   name: 'achievements',
-  version: 2,
-  eventTypes: ['GameCreated', 'PlayerJoined', 'GameEnded', 'BuildingUpgraded'],
+  version: 3,
+  eventTypes: ['GameCreated', 'PlayerJoined', 'CompanionAdded', 'GameEnded', 'BuildingUpgraded'],
 
   async apply(event, tx) {
     switch (event.type) {
       case 'GameCreated': {
         const data = event.data as unknown as GameCreatedData
-        await recordPlayer(tx, idFrom(event, GAME_CHANNEL_PREFIX), data.hostId)
+        const gameId = idFrom(event, GAME_CHANNEL_PREFIX)
+        await recordPlayer(tx, gameId, data.hostId)
+        await tx
+          .insert(games)
+          .values({ gameId, difficulty: data.difficulty === 'hard' ? 'hard' : 'easy' })
+          .onConflictDoNothing()
+        return
+      }
+
+      case 'CompanionAdded': {
+        const gameId = idFrom(event, GAME_CHANNEL_PREFIX)
+        await tx
+          .update(games)
+          .set({ companions: sql`${games.companions} + 1` })
+          .where(eq(games.gameId, gameId))
         return
       }
 
@@ -71,19 +88,27 @@ export const achievementsProjection: Projection = {
         const gameId = idFrom(event, GAME_CHANNEL_PREFIX)
         const rows = await tx.select().from(gamePlayers).where(eq(gamePlayers.gameId, gameId))
         const ids = rows.map((row) => row.playerId)
+        const [game] = await tx.select().from(games).where(eq(games.gameId, gameId))
         if (ids.length > 0) {
           const won = data.result === 'won'
+          // Une expédition gagnée retient, par difficulté, le plus grand nombre de compagnons.
+          const hard = game?.difficulty === 'hard'
+          const key = hard ? 'hardCompanions' : 'easyCompanions'
+          const bestCompanions =
+            won && game ? { [key]: sql`greatest(${playerStats[key]}, ${game.companions})` } : {}
           await tx
             .update(playerStats)
             .set({
               gamesPlayed: sql`${playerStats.gamesPlayed} + 1`,
               gamesWon: sql`${playerStats.gamesWon} + ${won ? 1 : 0}`,
               gold: sql`${playerStats.gold} + ${won ? data.loot : 0}`,
+              ...bestCompanions,
             })
             .where(inArray(playerStats.playerId, ids))
         }
-        // L'expédition est terminée : la liste de ses joueurs n'est plus utile.
+        // L'expédition est terminée : ses joueurs et sa description ne sont plus utiles.
         await tx.delete(gamePlayers).where(eq(gamePlayers.gameId, gameId))
+        await tx.delete(games).where(eq(games.gameId, gameId))
         return
       }
 
@@ -110,6 +135,7 @@ export const achievementsProjection: Projection = {
   },
 
   async reset(tx) {
+    await tx.delete(games)
     await tx.delete(gamePlayers)
     await tx.delete(playerStats)
   },

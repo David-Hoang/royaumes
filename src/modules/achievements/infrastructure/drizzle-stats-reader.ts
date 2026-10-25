@@ -29,6 +29,8 @@ export function createDrizzleStatsReader(db: Db, projections: ProjectionRunner):
           sawmillLevel: row.sawmillLevel,
           quarryLevel: row.quarryLevel,
           mineLevel: row.mineLevel,
+          easyCompanions: row.easyCompanions,
+          hardCompanions: row.hardCompanions,
         },
       }
     },
