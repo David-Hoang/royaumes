@@ -3,9 +3,9 @@ import {
   EMPTY_STATS,
   evaluate,
   groupByCategory,
+  groupBySeries,
   newlyUnlocked,
   nextGoal,
-  obtainedFirst,
 } from './achievements'
 import { ACHIEVEMENTS, CATEGORIES, type Stats } from './catalog'
 
@@ -62,20 +62,6 @@ describe('Hauts faits', () => {
 })
 
 describe('Présentation des hauts faits', () => {
-  it("place les hauts faits obtenus en premier, en gardant l'ordre du catalogue", () => {
-    const list = evaluate(stats({ upgrades: 5, gold: 200 }))
-    expect(obtainedFirst(list).map((a) => a.id)).toEqual([
-      'builder',
-      'first-coins',
-      'fortune',
-      'first-blood',
-      'veteran',
-      'big-fortune',
-      'treasurer',
-      'gold-king',
-    ])
-  })
-
   it('repère les hauts faits obtenus depuis la lecture précédente', () => {
     const list = evaluate(stats({ gamesWon: 1, upgrades: 5 }))
     expect(newlyUnlocked(new Set(['first-blood']), list)).toEqual(['builder'])
@@ -93,7 +79,17 @@ describe('Présentation des hauts faits', () => {
   })
 
   it('ne propose aucun objectif quand tout est obtenu', () => {
-    const all = evaluate(stats({ gamesPlayed: 10, gamesWon: 1, upgrades: 5, gold: 2000 }))
+    const all = evaluate(
+      stats({
+        gamesPlayed: 10,
+        gamesWon: 1,
+        upgrades: 5,
+        gold: 2000,
+        sawmillLevel: 10,
+        quarryLevel: 10,
+        mineLevel: 10,
+      }),
+    )
     expect(nextGoal(all)).toBeNull()
   })
 })
@@ -112,6 +108,39 @@ describe('Thèmes des hauts faits', () => {
   it('place chaque haut fait dans un seul groupe', () => {
     const ids = groupByCategory(evaluate(EMPTY_STATS)).flatMap((g) =>
       g.achievements.map((a) => a.id),
+    )
+    expect(ids.sort()).toEqual(ACHIEVEMENTS.map((def) => def.id).sort())
+  })
+})
+
+describe('Séries de hauts faits', () => {
+  // Une série se lit comme une seule jauge : tous ses paliers mesurent le même compteur, dans
+  // le même thème.
+  it("fait mesurer à tous les paliers d'une série le même compteur, dans le même thème", () => {
+    for (const id of new Set(ACHIEVEMENTS.map((def) => def.series).filter(Boolean))) {
+      const tiers = ACHIEVEMENTS.filter((def) => def.series === id)
+      expect(new Set(tiers.map((t) => t.counter)).size).toBe(1)
+      expect(new Set(tiers.map((t) => t.category)).size).toBe(1)
+    }
+  })
+
+  it('réunit les paliers de la scierie en une carte, du plus bas au plus haut', () => {
+    const entries = groupBySeries(evaluate(EMPTY_STATS))
+    const sawmill = entries.find((e) => e.kind === 'series' && e.id === 'sawmill')
+    expect(sawmill?.kind === 'series' && sawmill.tiers.map((t) => t.id)).toEqual([
+      'sawmill-first',
+      'sawmill-mid',
+      'sawmill-max',
+    ])
+  })
+
+  it('laisse un haut fait isolé seul, et ne perd ni ne duplique aucun haut fait', () => {
+    const entries = groupBySeries(evaluate(EMPTY_STATS))
+    expect(entries.some((e) => e.kind === 'single' && e.achievement.id === 'first-blood')).toBe(
+      true,
+    )
+    const ids = entries.flatMap((e) =>
+      e.kind === 'single' ? [e.achievement.id] : e.tiers.map((t) => t.id),
     )
     expect(ids.sort()).toEqual(ACHIEVEMENTS.map((def) => def.id).sort())
   })

@@ -4,9 +4,8 @@
  */
 import type { AchievementStatus } from './domain/achievements'
 
-export type { AchievementStatus } from './domain/achievements'
-
-export { groupByCategory, newlyUnlocked, nextGoal, obtainedFirst } from './domain/achievements'
+export type { AchievementStatus, Entry } from './domain/achievements'
+export { groupByCategory, groupBySeries, newlyUnlocked, nextGoal } from './domain/achievements'
 
 /** Hauts faits d'un joueur, tels que renvoyés par l'API. */
 export interface PlayerAchievements {

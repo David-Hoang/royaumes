@@ -8,9 +8,9 @@ import {
   ACHIEVEMENTS_CHANNEL,
   type AchievementStatus,
   groupByCategory,
+  groupBySeries,
   newlyUnlocked,
   nextGoal,
-  obtainedFirst,
   type PlayerAchievements,
 } from './contracts'
 
@@ -76,6 +76,53 @@ function AchievementCard({
       <p className="achievement-state">{stateOf(a)}</p>
       {a.threshold > 1 && (
         <progress value={a.progress} max={a.threshold} aria-label={`Progression : ${a.name}`} />
+      )}
+    </li>
+  )
+}
+
+/**
+ * Carte d'une série : tous les paliers d'un même compteur réunis, avec la jauge du prochain
+ * palier. Elle est grisée tant qu'aucun palier n'est obtenu, animée si l'un d'eux est nouveau.
+ */
+function SeriesCard({
+  id,
+  name,
+  tiers,
+  fresh,
+}: {
+  id: string
+  name: string
+  tiers: AchievementStatus[]
+  fresh: string[]
+}) {
+  const reached = tiers.filter((t) => t.unlocked).length
+  const next = tiers.find((t) => !t.unlocked)
+  const isFresh = tiers.some((t) => fresh.includes(t.id))
+  return (
+    <li className="achievement" data-unlocked={reached > 0} data-fresh={isFresh || undefined}>
+      <h2>
+        <Entity kind={id} /> {name}{' '}
+        <span className="muted">
+          ({reached} / {tiers.length})
+        </span>
+        {isFresh && <span className="achievement-new">Nouveau !</span>}
+      </h2>
+      <ol className="tiers">
+        {tiers.map((tier) => (
+          <li key={tier.id} data-unlocked={tier.unlocked}>
+            <strong>{tier.name}</strong>
+            <span className="muted">{tier.description}</span>
+            <span className="tier-state">{stateOf(tier)}</span>
+          </li>
+        ))}
+      </ol>
+      {next && (
+        <progress
+          value={next.progress}
+          max={next.threshold}
+          aria-label={`Progression : ${next.name}`}
+        />
       )}
     </li>
   )
@@ -184,9 +231,23 @@ export function AchievementsScreen({ userId }: { userId: string }) {
               </span>
             </h2>
             <ul className="achievements">
-              {obtainedFirst(group).map((a) => (
-                <AchievementCard key={a.id} achievement={a} fresh={fresh.includes(a.id)} />
-              ))}
+              {groupBySeries(group).map((entry) =>
+                entry.kind === 'series' ? (
+                  <SeriesCard
+                    key={entry.id}
+                    id={entry.id}
+                    name={entry.name}
+                    tiers={entry.tiers}
+                    fresh={fresh}
+                  />
+                ) : (
+                  <AchievementCard
+                    key={entry.achievement.id}
+                    achievement={entry.achievement}
+                    fresh={fresh.includes(entry.achievement.id)}
+                  />
+                ),
+              )}
             </ul>
           </section>
         ))}
