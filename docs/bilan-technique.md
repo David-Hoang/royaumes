@@ -15,8 +15,8 @@ revues. Il s'adresse à la personne qui reprendrait le projet.
 | Modules métier | 7 : `system`, `realm`, `dungeon`, `market`, `ranking`, `tavern`, `achievements` (6 à `td11-fin`) |
 | Briques de la plateforme | 9 : `auth`, `cron`, `db`, `event-store`, `http`, `outbox`, `privacy`, `projection`, `realtime` |
 | Lignes de code, hors tests | 9 168 dans `src/` (7 906 à `td11-fin`) |
-| Fichiers de test, nombre de tests | 38 fichiers, 275 tests (33 fichiers, 232 tests à `td11-fin`) |
-| Commits | 114 (76 à `td11-fin`) |
+| Fichiers de test, nombre de tests | 39 fichiers, 279 tests (33 fichiers, 232 tests à `td11-fin`) |
+| Commits | 115 (76 à `td11-fin`) |
 | Hébergement | Vercel (Francfort), base Neon (Francfort) |
 
 | Module | Stockage | Lignes, hors tests |
@@ -49,11 +49,11 @@ revues. Il s'adresse à la personne qui reprendrait le projet.
 
 | Caractéristique | Indicateur | Valeur | Appréciation |
 | --- | --- | --- | --- |
-| Adéquation fonctionnelle | Tests réussis ; couverture globale des lignes | 275 tests sur 275 (232 à `td11-fin`) ; 73,77 % des lignes (75,00 % à `td11-fin`) | Couverture en légère baisse : l'écran des Hauts faits n'est pas testé automatiquement (DT-014) |
+| Adéquation fonctionnelle | Tests réussis ; couverture globale des lignes | 279 tests sur 279 (232 à `td11-fin`) ; 73,88 % des lignes (75,00 % à `td11-fin`) | Couverture en légère baisse : l'écran des Hauts faits n'est pas testé automatiquement (DT-014) |
 | Efficacité des performances | Débit et p99 des lectures ; respect du budget | De 576 à 1 050 requêtes par seconde, p99 de 33 à 57 ms, aucune erreur, pour un budget de 500 ms (mesures de `td11-fin`) | Budget largement respecté. Le module Hauts faits n'a pas fait l'objet d'un test de charge |
 | Fiabilité | Tests de concurrence, de reprise et d'idempotence ; messages abandonnés | Acceptations simultanées au Marché, reprise après la panne du service Village, messages en double, lectures répétées des projections | Les cas de panne et de doublon sont couverts. Les messages abandonnés se détectent avec `scripts/dead-letters.ts` |
 | Sécurité | Exigences des revues de sécurité | Hauts faits : 15 exigences, 12 conformes, 3 risques acceptés. Autres revues : voir la section 5 | Revue du module à jour ; les revues précédentes ne sont pas terminées |
-| Maintenabilité | Règles d'architecture ; fonctions d'aptitude ; couverture | 0 violation sur 157 modules et 506 dépendances ; 2 fonctions d'aptitude ; 73,77 % des lignes | Les règles d'architecture sont respectées par le module ajouté, sans modification de leur configuration. Le module ajoute des tests de cohérence entre ses seuils et les constantes des autres modules |
+| Maintenabilité | Règles d'architecture ; fonctions d'aptitude ; couverture | 0 violation sur 157 modules et 506 dépendances ; 2 fonctions d'aptitude du projet, plus 4 tests d'aptitude propres au module (apparence de chaque haut fait) ; 73,88 % des lignes | Les règles d'architecture sont respectées par le module ajouté, sans modification de leur configuration. Le module ajoute des tests de cohérence entre ses seuils et les constantes des autres modules |
 | Flexibilité | Extraction d'un module ; changement de base entre local et production | Village extrait en service autonome (ADR 0009) ; PGlite en local et en test, Neon en production, avec les mêmes migrations | Le nouveau module s'ajoute en créant un répertoire et en le branchant dans `create-api.ts` |
 
 ## 4. La dette technique
