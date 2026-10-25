@@ -114,12 +114,17 @@ fichiers en dehors de leurs contrats : il ne dépend que de leur langage publié
 du nom et des données de leurs événements, ainsi que du préfixe de leurs flux.
 
 Le module `achievements` communique de la même façon que le Classement : sa projection lit
-quatre événements du Donjon et du Village (`GameCreated`, `PlayerJoined`, `GameEnded` et
-`BuildingUpgraded`) et n'importe que leurs `contracts.ts`, pour obtenir les préfixes de leurs
-flux. La communication est à sens unique : le module n'écrit chez personne, donc le Donjon et
-le Village n'ont pas été modifiés. Chaque événement est appliqué une fois, car la projection
-avance son point de reprise dans la même transaction que les compteurs. La cohérence est
-différée : un haut fait peut apparaître quelques secondes après l'action (ADR 0010 et 0011).
+huit événements de trois modules, le Donjon (`GameCreated`, `PlayerJoined`, `CompanionAdded` et
+`GameEnded`), le Village (`BuildingUpgraded`) et le Marché (`OfferPublished`, `TradeCompleted`
+et `OfferWithdrawn`), et n'importe que leurs `contracts.ts`, pour obtenir les préfixes de leurs
+flux. La communication est à sens unique : le module n'écrit chez personne, donc aucun de ces
+trois modules n'a été modifié. Certains événements sont incomplets pour son besoin (`GameEnded`
+ne dit ni la difficulté ni les compagnons, `TradeCompleted` ne dit pas le vendeur) : la
+projection retient ces informations dans des tables de passage de son schéma (`games`,
+`game_players`, `offers`) jusqu'à la fin de l'expédition ou de l'offre. Chaque événement est
+appliqué une fois, car la projection avance son point de reprise dans la même transaction que
+les compteurs. La cohérence est différée : un haut fait peut apparaître quelques secondes
+après l'action (ADR 0010 et 0011).
 
 Le module `market` modifie les villages sans jamais importer le code du Village : il enregistre
 des messages dans la boîte d'envoi, que le distributeur remet aux gestionnaires du Village.
