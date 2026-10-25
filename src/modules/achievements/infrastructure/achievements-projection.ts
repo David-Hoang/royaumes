@@ -20,6 +20,17 @@ interface GameEndedData {
   result: 'won' | 'lost'
   loot: number
 }
+interface BuildingUpgradedData {
+  building?: string
+  toLevel?: number
+}
+
+/** Colonne qui retient le plus haut niveau atteint par chaque bâtiment du Village. */
+const LEVEL_KEYS = {
+  sawmill: 'sawmillLevel',
+  quarry: 'quarryLevel',
+  mine: 'mineLevel',
+} as const
 
 /** Identifiant tiré du nom d'un flux : « dungeon-7f3a » donne « 7f3a ». */
 const idFrom = (event: StoredEvent, prefix: string) => event.stream.slice(prefix.length)
@@ -33,10 +44,11 @@ async function recordPlayer(tx: DbTransaction, gameId: string, playerId: string)
 /**
  * Projection des hauts faits : met à jour les compteurs des joueurs à partir du journal.
  * Version 1 : première version.
+ * Version 2 : ajout du plus haut niveau atteint par chaque bâtiment.
  */
 export const achievementsProjection: Projection = {
   name: 'achievements',
-  version: 1,
+  version: 2,
   eventTypes: ['GameCreated', 'PlayerJoined', 'GameEnded', 'BuildingUpgraded'],
 
   async apply(event, tx) {
@@ -76,13 +88,21 @@ export const achievementsProjection: Projection = {
       }
 
       case 'BuildingUpgraded': {
+        const data = event.data as unknown as BuildingUpgradedData
         const playerId = idFrom(event, VILLAGE_CHANNEL_PREFIX)
+        // Le niveau n'est retenu que pour un bâtiment connu ; l'amélioration est toujours comptée.
+        const key =
+          typeof data.toLevel === 'number'
+            ? LEVEL_KEYS[data.building as keyof typeof LEVEL_KEYS]
+            : undefined
+        const firstLevel = key ? { [key]: data.toLevel } : {}
+        const nextLevel = key ? { [key]: sql`greatest(${playerStats[key]}, ${data.toLevel})` } : {}
         await tx
           .insert(playerStats)
-          .values({ playerId, upgrades: 1 })
+          .values({ playerId, upgrades: 1, ...firstLevel })
           .onConflictDoUpdate({
             target: playerStats.playerId,
-            set: { upgrades: sql`${playerStats.upgrades} + 1` },
+            set: { upgrades: sql`${playerStats.upgrades} + 1`, ...nextLevel },
           })
         return
       }

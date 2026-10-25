@@ -26,6 +26,9 @@ export function createDrizzleStatsReader(db: Db, projections: ProjectionRunner):
           gamesWon: row.gamesWon,
           upgrades: row.upgrades,
           gold: row.gold,
+          sawmillLevel: row.sawmillLevel,
+          quarryLevel: row.quarryLevel,
+          mineLevel: row.mineLevel,
         },
       }
     },

@@ -10,6 +10,11 @@ export const playerStats = achievements.table('player_stats', {
   gamesWon: integer('games_won').notNull().default(0),
   upgrades: integer('upgrades').notNull().default(0),
   gold: integer('gold').notNull().default(0),
+  // Plus haut niveau atteint par chaque bâtiment, d'après l'événement BuildingUpgraded ;
+  // 0 tant que le bâtiment n'a jamais été amélioré. Ajoutés par la version 2 de la projection.
+  sawmillLevel: integer('sawmill_level').notNull().default(0),
+  quarryLevel: integer('quarry_level').notNull().default(0),
+  mineLevel: integer('mine_level').notNull().default(0),
 })
 
 /**

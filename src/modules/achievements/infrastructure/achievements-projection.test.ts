@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { BUILDINGS, MAX_LEVEL } from '@/modules/realm/contracts'
 import { createTestDatabase } from '@/platform/db/client'
 import {
   createEventStore,
@@ -7,6 +8,8 @@ import {
 } from '@/platform/event-store/event-store'
 import { createProjectionRunner } from '@/platform/projection/projection'
 import type { StatsReader } from '../application/stats-reader'
+import { EMPTY_STATS } from '../domain/achievements'
+import { ACHIEVEMENTS } from '../domain/catalog'
 import { createDrizzleStatsReader } from './drizzle-stats-reader'
 
 // Chaque test dispose d'un journal neuf et de compteurs vides.
@@ -27,6 +30,10 @@ const companion: NewEvent = { type: 'CompanionAdded', data: { companionId: 'comp
 const ended = (result: 'won' | 'lost', loot: number): NewEvent => ({
   type: 'GameEnded',
   data: { result, loot },
+})
+const upgraded = (building: string, toLevel: number): NewEvent => ({
+  type: 'BuildingUpgraded',
+  data: { building, toLevel },
 })
 
 /** Compteurs d'un joueur. */
@@ -62,8 +69,36 @@ describe('Projection des hauts faits', () => {
 
   it("n'attribue rien à un joueur inconnu et ne mélange pas les joueurs", async () => {
     await store.append('dungeon-g1', 0, [created('alice'), ended('won', 40)])
-    expect(await statsOf('inconnu')).toEqual({ gamesPlayed: 0, gamesWon: 0, upgrades: 0, gold: 0 })
+    expect(await statsOf('inconnu')).toEqual(EMPTY_STATS)
     expect(await statsOf('alice')).toMatchObject({ gamesWon: 1 })
+  })
+
+  it('retient le plus haut niveau atteint par chaque bâtiment, indépendamment des autres', async () => {
+    await store.append('village-carol', 0, [
+      upgraded('sawmill', 2),
+      upgraded('sawmill', 3),
+      upgraded('quarry', 2),
+    ])
+    expect(await statsOf('carol')).toMatchObject({
+      upgrades: 3,
+      sawmillLevel: 3,
+      quarryLevel: 2,
+      mineLevel: 0,
+    })
+  })
+
+  it('garde le plus haut niveau atteint, même si un événement plus ancien arrive ensuite', async () => {
+    await store.append('village-carol', 0, [upgraded('mine', 10), upgraded('mine', 2)])
+    expect(await statsOf('carol')).toMatchObject({ mineLevel: 10 })
+  })
+
+  // Un haut fait « maître » demande le niveau maximal du Village : si ce niveau change, le
+  // seuil du haut fait doit changer avec lui. Chaque bâtiment du Village a ses trois hauts faits.
+  it('fixe le seuil des hauts faits « maître » au niveau maximal du Village', () => {
+    for (const building of BUILDINGS) {
+      const master = ACHIEVEMENTS.find((def) => def.id === `${building}-max`)
+      expect(master?.threshold).toBe(MAX_LEVEL)
+    }
   })
 
   it("n'applique pas deux fois un même événement quand la lecture est répétée", async () => {

@@ -1,4 +1,12 @@
-import { ACHIEVEMENTS, type AchievementDef, CATEGORIES, type Category, type Stats } from './catalog'
+import {
+  ACHIEVEMENTS,
+  type AchievementDef,
+  CATEGORIES,
+  type Category,
+  SERIES,
+  type SeriesId,
+  type Stats,
+} from './catalog'
 
 /** État d'un haut fait pour un joueur : sa progression, et s'il est obtenu. */
 export interface AchievementStatus {
@@ -6,6 +14,8 @@ export interface AchievementStatus {
   name: string
   description: string
   category: Category
+  /** Série dont il est un palier ; null pour un haut fait isolé. */
+  series: SeriesId | null
   /** Valeur du compteur, plafonnée au seuil. */
   progress: number
   threshold: number
@@ -13,7 +23,15 @@ export interface AchievementStatus {
 }
 
 /** Compteurs d'un joueur qui n'a encore rien fait. */
-export const EMPTY_STATS: Stats = { gamesPlayed: 0, gamesWon: 0, upgrades: 0, gold: 0 }
+export const EMPTY_STATS: Stats = {
+  gamesPlayed: 0,
+  gamesWon: 0,
+  upgrades: 0,
+  gold: 0,
+  sawmillLevel: 0,
+  quarryLevel: 0,
+  mineLevel: 0,
+}
 
 function statusOf(def: AchievementDef, stats: Stats): AchievementStatus {
   const value = stats[def.counter]
@@ -22,6 +40,7 @@ function statusOf(def: AchievementDef, stats: Stats): AchievementStatus {
     name: def.name,
     description: def.description,
     category: def.category,
+    series: def.series ?? null,
     // Règle 5 : la progression ne dépasse jamais le seuil.
     progress: Math.min(value, def.threshold),
     threshold: def.threshold,
@@ -37,11 +56,6 @@ function statusOf(def: AchievementDef, stats: Stats): AchievementStatus {
  */
 export function evaluate(stats: Stats): AchievementStatus[] {
   return ACHIEVEMENTS.map((def) => statusOf(def, stats))
-}
-
-/** Les hauts faits obtenus d'abord ; à égalité, l'ordre du catalogue est conservé. */
-export function obtainedFirst(list: AchievementStatus[]): AchievementStatus[] {
-  return [...list].sort((a, b) => Number(b.unlocked) - Number(a.unlocked))
 }
 
 /** Identifiants des hauts faits obtenus dans la liste actuelle, mais pas dans la précédente. */
@@ -76,4 +90,38 @@ export function groupByCategory(
     category,
     achievements: list.filter((a) => a.category === category),
   })).filter((group) => group.achievements.length > 0)
+}
+
+/** Ce que l'écran affiche : un haut fait isolé, ou une série de paliers réunis dans une carte. */
+export type Entry =
+  | { kind: 'single'; achievement: AchievementStatus }
+  | { kind: 'series'; id: SeriesId; name: string; tiers: AchievementStatus[] }
+
+/**
+ * Réunit les paliers d'une même série. Les entrées suivent l'ordre de la liste reçue, à la
+ * première apparition de chaque série ; les paliers d'une série sont rangés par seuil croissant.
+ */
+export function groupBySeries(list: AchievementStatus[]): Entry[] {
+  const entries: Entry[] = []
+  const bySeries = new Map<SeriesId, Extract<Entry, { kind: 'series' }>>()
+  for (const achievement of list) {
+    if (!achievement.series) {
+      entries.push({ kind: 'single', achievement })
+      continue
+    }
+    let entry = bySeries.get(achievement.series)
+    if (!entry) {
+      entry = {
+        kind: 'series',
+        id: achievement.series,
+        name: SERIES[achievement.series],
+        tiers: [],
+      }
+      bySeries.set(achievement.series, entry)
+      entries.push(entry)
+    }
+    entry.tiers.push(achievement)
+  }
+  for (const entry of bySeries.values()) entry.tiers.sort((a, b) => a.threshold - b.threshold)
+  return entries
 }
