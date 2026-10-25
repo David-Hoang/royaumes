@@ -16,4 +16,4 @@ un nouvel ADR est rédigé et l'ancien prend le statut « remplacé ».
 | [0008](0008-donnees-personnelles.md) | Stockage classique pour la Taverne, et réécriture ciblée du journal pour l'effacement | Accepté |
 | [0009](0009-extraction-village.md) | Extraction du Village en service autonome, préparée mais non déployée | Accepté |
 | [0010](0010-stockage-hauts-faits.md) | Tables de lecture tenues par une projection pour les Hauts faits | Accepté |
-| [0011](0011-communication-hauts-faits.md) | Lecture du langage publié du Donjon et du Village par les Hauts faits | Accepté |
+| [0011](0011-communication-hauts-faits.md) | Lecture du langage publié du Donjon, du Village et du Marché par les Hauts faits | Accepté |
