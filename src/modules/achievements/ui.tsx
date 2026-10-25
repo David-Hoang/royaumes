@@ -1,6 +1,6 @@
 'use client'
 import { hc } from 'hono/client'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { type ChannelEvent, useChannel } from '@/platform/realtime/use-channel'
 import { Entity } from '@/ui/entity'
 import type { AchievementsApi } from './api'
@@ -60,74 +60,136 @@ function stateOf(a: AchievementStatus) {
   return a.threshold > 1 ? `${a.progress} / ${a.threshold}` : 'Non obtenu'
 }
 
-/** Carte d'un haut fait : grisée tant qu'il n'est pas obtenu, animée s'il est nouveau. */
-function AchievementCard({
+/** Un sceau de cire sur l'étagère : rouge et doré s'il est obtenu, gris sinon, lumineux s'il est nouveau. */
+function Seal({
+  icon,
   achievement: a,
   fresh,
+  selected,
+  onSelect,
 }: {
+  icon: string
   achievement: AchievementStatus
   fresh: boolean
+  selected: boolean
+  onSelect: () => void
 }) {
+  const bubble = useRef<HTMLDivElement>(null)
+  // La bulle est recentrée si elle déborde de l'écran.
+  useLayoutEffect(() => {
+    const el = bubble.current
+    if (!selected || !el) return
+    el.style.setProperty('--shift', '0px')
+    const box = el.getBoundingClientRect()
+    const margin = 8
+    const shift =
+      box.left < margin
+        ? margin - box.left
+        : box.right > window.innerWidth - margin
+          ? window.innerWidth - margin - box.right
+          : 0
+    el.style.setProperty('--shift', `${shift}px`)
+  }, [selected])
   return (
-    <li className="achievement" data-unlocked={a.unlocked} data-fresh={fresh || undefined}>
-      <h2>
-        <Entity kind={a.id} /> {a.name}
+    <li className="seal-item">
+      <button
+        type="button"
+        className="seal"
+        data-unlocked={a.unlocked}
+        data-fresh={fresh || undefined}
+        aria-expanded={selected}
+        aria-label={`${a.name} : ${stateOf(a)}`}
+        onClick={onSelect}
+      >
+        <span className="seal-wax">
+          <Entity kind={icon} />
+        </span>
+        <span className="seal-name">{a.name}</span>
         {fresh && <span className="achievement-new">Nouveau !</span>}
-      </h2>
-      <p className="muted">{a.description}</p>
-      <p className="achievement-state">{stateOf(a)}</p>
-      {a.threshold > 1 && (
-        <progress value={a.progress} max={a.threshold} aria-label={`Progression : ${a.name}`} />
+      </button>
+      {selected && (
+        <div className="seal-bubble" ref={bubble} role="status">
+          <strong>{a.name}</strong>
+          <span>{a.description}</span>
+          <span className="achievement-state">{stateOf(a)}</span>
+          {!a.unlocked && a.threshold > 1 && (
+            <progress value={a.progress} max={a.threshold} aria-label={`Progression : ${a.name}`} />
+          )}
+        </div>
       )}
     </li>
   )
 }
 
-/**
- * Carte d'une série : tous les paliers d'un même compteur réunis, avec la jauge du prochain
- * palier. Elle est grisée tant qu'aucun palier n'est obtenu, animée si l'un d'eux est nouveau.
- */
-function SeriesCard({
-  id,
-  name,
-  tiers,
+/** Un sceau à poser sur une étagère, avec l'icône qui le distingue. */
+interface ShelfItem {
+  icon: string
+  achievement: AchievementStatus
+}
+
+/** Une étagère : un titre à gauche, les sceaux alignés à droite, une planche dessous. */
+function Shelf({
+  label,
+  items,
   fresh,
+  selectedId,
+  onSelect,
 }: {
-  id: string
-  name: string
-  tiers: AchievementStatus[]
+  label: string
+  items: ShelfItem[]
   fresh: string[]
+  selectedId: string | null
+  onSelect: (id: string | null) => void
 }) {
-  const reached = tiers.filter((t) => t.unlocked).length
-  const next = tiers.find((t) => !t.unlocked)
-  const isFresh = tiers.some((t) => fresh.includes(t.id))
+  const reached = items.filter((item) => item.achievement.unlocked).length
   return (
-    <li className="achievement" data-unlocked={reached > 0} data-fresh={isFresh || undefined}>
-      <h2>
-        <Entity kind={id} /> {name}{' '}
+    <li className="shelf">
+      <p className="shelf-label">
+        {label}
         <span className="muted">
-          ({reached} / {tiers.length})
+          {' '}
+          {reached} / {items.length}
         </span>
-        {isFresh && <span className="achievement-new">Nouveau !</span>}
-      </h2>
-      <ol className="tiers">
-        {tiers.map((tier) => (
-          <li key={tier.id} data-unlocked={tier.unlocked}>
-            <strong>{tier.name}</strong>
-            <span className="muted">{tier.description}</span>
-            <span className="tier-state">{stateOf(tier)}</span>
-          </li>
+      </p>
+      <ul className="seals">
+        {items.map((item) => (
+          <Seal
+            key={item.achievement.id}
+            icon={item.icon}
+            achievement={item.achievement}
+            fresh={fresh.includes(item.achievement.id)}
+            selected={selectedId === item.achievement.id}
+            onSelect={() =>
+              onSelect(selectedId === item.achievement.id ? null : item.achievement.id)
+            }
+          />
         ))}
-      </ol>
-      {next && (
-        <progress
-          value={next.progress}
-          max={next.threshold}
-          aria-label={`Progression : ${next.name}`}
-        />
-      )}
+      </ul>
     </li>
   )
+}
+
+/**
+ * Les étagères d'une catégorie : une par série, et une seule pour tous les hauts faits
+ * uniques, afin de ne pas multiplier les étagères d'un seul sceau.
+ */
+function shelvesOf(group: AchievementStatus[]) {
+  const entries = groupBySeries(group)
+  const shelves: { key: string; label: string; items: ShelfItem[] }[] = []
+  const singles: ShelfItem[] = []
+  for (const entry of entries) {
+    if (entry.kind === 'series') {
+      shelves.push({
+        key: entry.id,
+        label: entry.name,
+        items: entry.tiers.map((tier) => ({ icon: entry.id, achievement: tier })),
+      })
+    } else {
+      singles.push({ icon: entry.achievement.id, achievement: entry.achievement })
+    }
+  }
+  if (singles.length > 0) shelves.push({ key: 'singles', label: "Faits d'armes", items: singles })
+  return shelves
 }
 
 // DETTE TECHNIQUE (docs/qualite/dette-technique.md, DT-014) : cet écran est vérifié à la
@@ -141,6 +203,25 @@ export function AchievementsScreen({ userId }: { userId: string }) {
   // Hauts faits déjà montrés. Absent avant la première lecture : il est alors relu du
   // stockage du navigateur, afin de signaler aussi ce qui a été obtenu en jouant ailleurs.
   const known = useRef<Set<string> | null>(null)
+  // Sceau dont la bulle d'information est ouverte.
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  // La bulle se referme par un clic ailleurs ou avec Échap.
+  useEffect(() => {
+    if (!selectedId) return
+    const onPointer = (event: PointerEvent) => {
+      if (!(event.target as Element).closest('.seal-item')) setSelectedId(null)
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelectedId(null)
+    }
+    document.addEventListener('pointerdown', onPointer)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onPointer)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [selectedId])
 
   // REQUÊTE : la lecture déclenche, côté serveur, le rattrapage de la projection.
   // Renvoie la position jusqu'à laquelle la liste reçue est à jour ; 0 en cas d'échec.
@@ -232,24 +313,17 @@ export function AchievementsScreen({ userId }: { userId: string }) {
                 ({group.filter((a) => a.unlocked).length} / {group.length})
               </span>
             </h2>
-            <ul className="achievements">
-              {groupBySeries(group).map((entry) =>
-                entry.kind === 'series' ? (
-                  <SeriesCard
-                    key={entry.id}
-                    id={entry.id}
-                    name={entry.name}
-                    tiers={entry.tiers}
-                    fresh={fresh}
-                  />
-                ) : (
-                  <AchievementCard
-                    key={entry.achievement.id}
-                    achievement={entry.achievement}
-                    fresh={fresh.includes(entry.achievement.id)}
-                  />
-                ),
-              )}
+            <ul className="shelves">
+              {shelvesOf(group).map((shelf) => (
+                <Shelf
+                  key={shelf.key}
+                  label={shelf.label}
+                  items={shelf.items}
+                  fresh={fresh}
+                  selectedId={selectedId}
+                  onSelect={setSelectedId}
+                />
+              ))}
             </ul>
           </section>
         ))}
