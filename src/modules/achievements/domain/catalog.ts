@@ -17,6 +17,9 @@ export const COUNTERS = [
   // Plus grand nombre de compagnons d'une expédition gagnée, par niveau de difficulté.
   'easyCompanions',
   'hardCompanions',
+  // Offres publiées au Marché, et offres conclues par leur vendeur.
+  'offersPublished',
+  'tradesCompleted',
 ] as const
 export type Counter = (typeof COUNTERS)[number]
 
@@ -42,6 +45,7 @@ export const SERIES = {
   gold: 'Or rapporté',
   'easy-companions': 'Facile, avec compagnons',
   'hard-companions': 'Difficile, avec compagnons',
+  trades: 'Offres réussies',
 } as const
 export type SeriesId = keyof typeof SERIES
 
@@ -266,5 +270,50 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = [
     series: 'hard-companions',
     counter: 'hardCompanions',
     threshold: 3,
+  },
+  // Marché : publier sa première offre, puis faire conclure 1, 5, 10 et 25 de ses offres.
+  {
+    id: 'first-stall',
+    name: 'Premier étal',
+    description: 'Publier sa première offre au Marché.',
+    category: 'market',
+    counter: 'offersPublished',
+    threshold: 1,
+  },
+  {
+    id: 'trade-1',
+    name: 'Premier échange',
+    description: 'Voir 1 de ses offres conclue.',
+    category: 'market',
+    series: 'trades',
+    counter: 'tradesCompleted',
+    threshold: 1,
+  },
+  {
+    id: 'trade-5',
+    name: 'Négociant',
+    description: 'Voir 5 de ses offres conclues.',
+    category: 'market',
+    series: 'trades',
+    counter: 'tradesCompleted',
+    threshold: 5,
+  },
+  {
+    id: 'trade-10',
+    name: 'Commerçant',
+    description: 'Voir 10 de ses offres conclues.',
+    category: 'market',
+    series: 'trades',
+    counter: 'tradesCompleted',
+    threshold: 10,
+  },
+  {
+    id: 'trade-25',
+    name: 'Grand marchand',
+    description: 'Voir 25 de ses offres conclues.',
+    category: 'market',
+    series: 'trades',
+    counter: 'tradesCompleted',
+    threshold: 25,
   },
 ]

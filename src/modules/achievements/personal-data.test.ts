@@ -1,15 +1,16 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createTestDatabase } from '@/platform/db/client'
-import { createEventStore } from '@/platform/event-store/event-store'
+import { createEventStore, type EventStore } from '@/platform/event-store/event-store'
 import type { PersonalDataContributor } from '@/platform/privacy/privacy'
 import { createProjectionRunner } from '@/platform/projection/projection'
 import { createAchievementsPersonalData } from './personal-data'
 
 // Chaque test dispose d'un journal neuf, de compteurs vides, et de deux joueurs qui ont joué.
 let contributor: PersonalDataContributor
+let store: EventStore
 beforeEach(async () => {
   const db = await createTestDatabase()
-  const store = createEventStore(db)
+  store = createEventStore(db)
   contributor = createAchievementsPersonalData(db, createProjectionRunner(db))
 
   await store.append('dungeon-g1', 0, [
@@ -41,6 +42,14 @@ describe('Données personnelles des Hauts faits', () => {
 
     expect(await contributor.export('alice')).toBeNull()
     expect(await contributor.export('bob')).toMatchObject({ gamesWon: 1 })
+  })
+
+  it("ne recrée pas les compteurs d'un joueur effacé quand son offre se conclut ensuite", async () => {
+    await store.append('market-o1', 0, [{ type: 'OfferPublished', data: { sellerId: 'alice' } }])
+    await contributor.erase?.('alice', [])
+
+    await store.append('market-o1', 1, [{ type: 'TradeCompleted', data: {} }])
+    expect(await contributor.export('alice')).toBeNull()
   })
 
   it("peut être relancé : un second effacement ne produit pas d'erreur", async () => {

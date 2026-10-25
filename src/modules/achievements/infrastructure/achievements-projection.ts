@@ -1,9 +1,10 @@
 import { eq, inArray, sql } from 'drizzle-orm'
 import { GAME_CHANNEL_PREFIX } from '@/modules/dungeon/contracts'
+import { OFFER_STREAM_PREFIX } from '@/modules/market/contracts'
 import { VILLAGE_CHANNEL_PREFIX } from '@/modules/realm/contracts'
 import type { StoredEvent } from '@/platform/event-store/event-store'
 import type { DbTransaction, Projection } from '@/platform/projection/projection'
-import { gamePlayers, games, playerStats } from './schema'
+import { gamePlayers, games, offers, playerStats } from './schema'
 
 /*
  * Données des événements lus par les Hauts faits. Elles forment le « langage publié »
@@ -21,6 +22,9 @@ interface PlayerJoinedData {
 interface GameEndedData {
   result: 'won' | 'lost'
   loot: number
+}
+interface OfferPublishedData {
+  sellerId: string
 }
 interface BuildingUpgradedData {
   building?: string
@@ -48,11 +52,21 @@ async function recordPlayer(tx: DbTransaction, gameId: string, playerId: string)
  * Version 1 : première version.
  * Version 2 : ajout du plus haut niveau atteint par chaque bâtiment.
  * Version 3 : ajout des compagnons des expéditions gagnées, par niveau de difficulté.
+ * Version 4 : ajout des offres publiées et des échanges conclus au Marché.
  */
 export const achievementsProjection: Projection = {
   name: 'achievements',
-  version: 3,
-  eventTypes: ['GameCreated', 'PlayerJoined', 'CompanionAdded', 'GameEnded', 'BuildingUpgraded'],
+  version: 4,
+  eventTypes: [
+    'GameCreated',
+    'PlayerJoined',
+    'CompanionAdded',
+    'GameEnded',
+    'BuildingUpgraded',
+    'OfferPublished',
+    'TradeCompleted',
+    'OfferWithdrawn',
+  ],
 
   async apply(event, tx) {
     switch (event.type) {
@@ -131,10 +145,47 @@ export const achievementsProjection: Projection = {
           })
         return
       }
+
+      case 'OfferPublished': {
+        // Le vendeur de l'offre est retenu : l'échange conclu lui sera attribué.
+        const data = event.data as unknown as OfferPublishedData
+        const offerId = idFrom(event, OFFER_STREAM_PREFIX)
+        await tx.insert(offers).values({ offerId, sellerId: data.sellerId }).onConflictDoNothing()
+        await tx
+          .insert(playerStats)
+          .values({ playerId: data.sellerId, offersPublished: 1 })
+          .onConflictDoUpdate({
+            target: playerStats.playerId,
+            set: { offersPublished: sql`${playerStats.offersPublished} + 1` },
+          })
+        return
+      }
+
+      case 'TradeCompleted': {
+        // L'échange réussi est attribué au vendeur de l'offre ; l'offre est alors terminée.
+        const offerId = idFrom(event, OFFER_STREAM_PREFIX)
+        const [offer] = await tx.select().from(offers).where(eq(offers.offerId, offerId))
+        if (offer) {
+          await tx
+            .update(playerStats)
+            .set({ tradesCompleted: sql`${playerStats.tradesCompleted} + 1` })
+            .where(eq(playerStats.playerId, offer.sellerId))
+          await tx.delete(offers).where(eq(offers.offerId, offerId))
+        }
+        return
+      }
+
+      case 'OfferWithdrawn': {
+        // Une offre retirée ou échue n'aboutira pas : son vendeur n'a plus à être retenu.
+        const offerId = idFrom(event, OFFER_STREAM_PREFIX)
+        await tx.delete(offers).where(eq(offers.offerId, offerId))
+        return
+      }
     }
   },
 
   async reset(tx) {
+    await tx.delete(offers)
     await tx.delete(games)
     await tx.delete(gamePlayers)
     await tx.delete(playerStats)

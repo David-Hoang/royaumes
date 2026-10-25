@@ -90,6 +90,8 @@ describe('Présentation des hauts faits', () => {
         mineLevel: 10,
         easyCompanions: 3,
         hardCompanions: 3,
+        offersPublished: 1,
+        tradesCompleted: 25,
       }),
     )
     expect(nextGoal(all)).toBeNull()

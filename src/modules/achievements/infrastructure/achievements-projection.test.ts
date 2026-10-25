@@ -35,6 +35,10 @@ const ended = (result: 'won' | 'lost', loot: number): NewEvent => ({
   type: 'GameEnded',
   data: { result, loot },
 })
+const published = (sellerId: string): NewEvent => ({ type: 'OfferPublished', data: { sellerId } })
+const accepted = (buyerId: string): NewEvent => ({ type: 'OfferAccepted', data: { buyerId } })
+const completed: NewEvent = { type: 'TradeCompleted', data: {} }
+const withdrawn: NewEvent = { type: 'OfferWithdrawn', data: { reason: 'seller' } }
 const upgraded = (building: string, toLevel: number): NewEvent => ({
   type: 'BuildingUpgraded',
   data: { building, toLevel },
@@ -112,6 +116,24 @@ describe('Projection des hauts faits', () => {
     await store.append('dungeon-g2', 2, [ended('won', 40)])
     expect(await statsOf('alice')).toMatchObject({ easyCompanions: 2 })
     expect(await statsOf('bob')).toMatchObject({ easyCompanions: 1 })
+  })
+
+  it('compte une offre publiée pour son vendeur, avant même sa conclusion', async () => {
+    await store.append('market-o1', 0, [published('alice')])
+    expect(await statsOf('alice')).toMatchObject({ offersPublished: 1, tradesCompleted: 0 })
+  })
+
+  it("attribue l'échange conclu au vendeur de l'offre, et non à son acheteur", async () => {
+    await store.append('market-o1', 0, [published('alice'), accepted('bob'), completed])
+    expect(await statsOf('alice')).toMatchObject({ offersPublished: 1, tradesCompleted: 1 })
+    expect(await statsOf('bob')).toEqual(EMPTY_STATS)
+  })
+
+  it('ne compte pas comme réussie une offre retirée, et compte chaque offre séparément', async () => {
+    await store.append('market-o1', 0, [published('alice'), withdrawn])
+    await store.append('market-o2', 0, [published('alice'), accepted('bob'), completed])
+    await store.append('market-o3', 0, [published('alice'), accepted('carol'), completed])
+    expect(await statsOf('alice')).toMatchObject({ offersPublished: 3, tradesCompleted: 2 })
   })
 
   it('retient le plus haut niveau atteint par chaque bâtiment, indépendamment des autres', async () => {

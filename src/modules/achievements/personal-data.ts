@@ -3,7 +3,7 @@ import type { Db } from '@/platform/db/client'
 import type { PersonalDataContributor } from '@/platform/privacy/privacy'
 import type { ProjectionRunner } from '@/platform/projection/projection'
 import { achievementsProjection } from './infrastructure/achievements-projection'
-import { gamePlayers, playerStats } from './infrastructure/schema'
+import { gamePlayers, offers, playerStats } from './infrastructure/schema'
 
 /**
  * Données personnelles des Hauts faits : les compteurs du joueur, rattachés à son identifiant.
@@ -28,6 +28,7 @@ export function createAchievementsPersonalData(
     async erase(playerId) {
       await projections.catchUp(achievementsProjection)
       await db.delete(gamePlayers).where(eq(gamePlayers.playerId, playerId))
+      await db.delete(offers).where(eq(offers.sellerId, playerId))
       await db.delete(playerStats).where(eq(playerStats.playerId, playerId))
     },
   }

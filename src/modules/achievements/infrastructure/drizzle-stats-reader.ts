@@ -31,6 +31,8 @@ export function createDrizzleStatsReader(db: Db, projections: ProjectionRunner):
           mineLevel: row.mineLevel,
           easyCompanions: row.easyCompanions,
           hardCompanions: row.hardCompanions,
+          offersPublished: row.offersPublished,
+          tradesCompleted: row.tradesCompleted,
         },
       }
     },

@@ -33,6 +33,8 @@ export const EMPTY_STATS: Stats = {
   mineLevel: 0,
   easyCompanions: 0,
   hardCompanions: 0,
+  offersPublished: 0,
+  tradesCompleted: 0,
 }
 
 function statusOf(def: AchievementDef, stats: Stats): AchievementStatus {

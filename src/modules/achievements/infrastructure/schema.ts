@@ -19,6 +19,10 @@ export const playerStats = achievements.table('player_stats', {
   // Ajoutés par la version 3 de la projection.
   easyCompanions: integer('easy_companions').notNull().default(0),
   hardCompanions: integer('hard_companions').notNull().default(0),
+  // Offres publiées au Marché, et offres conclues par leur vendeur. Ajoutés par la version 4
+  // de la projection.
+  offersPublished: integer('offers_published').notNull().default(0),
+  tradesCompleted: integer('trades_completed').notNull().default(0),
 })
 
 /**
@@ -29,6 +33,15 @@ export const games = achievements.table('games', {
   gameId: text('game_id').primaryKey(),
   difficulty: text('difficulty').notNull().default('easy'),
   companions: integer('companions').notNull().default(0),
+})
+
+/**
+ * Vendeur de chaque offre du Marché, retenu jusqu'à la fin de l'offre : l'événement
+ * TradeCompleted ne désigne pas le vendeur, à qui l'échange réussi est attribué.
+ */
+export const offers = achievements.table('offers', {
+  offerId: text('offer_id').primaryKey(),
+  sellerId: text('seller_id').notNull(),
 })
 
 /**
