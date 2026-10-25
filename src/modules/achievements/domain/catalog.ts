@@ -44,10 +44,38 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = [
     threshold: 5,
   },
   {
+    id: 'first-coins',
+    name: 'Premières pièces',
+    description: 'Rapporter 100 or des expéditions.',
+    counter: 'gold',
+    threshold: 100,
+  },
+  {
     id: 'fortune',
     name: 'Fortune',
     description: 'Rapporter 200 or des expéditions.',
     counter: 'gold',
     threshold: 200,
+  },
+  {
+    id: 'big-fortune',
+    name: 'Grosse fortune',
+    description: 'Rapporter 500 or des expéditions.',
+    counter: 'gold',
+    threshold: 500,
+  },
+  {
+    id: 'treasurer',
+    name: 'Trésorier',
+    description: 'Rapporter 1000 or des expéditions.',
+    counter: 'gold',
+    threshold: 1000,
+  },
+  {
+    id: 'gold-king',
+    name: "Roi de l'or",
+    description: 'Rapporter 2000 or des expéditions.',
+    counter: 'gold',
+    threshold: 2000,
   },
 ]

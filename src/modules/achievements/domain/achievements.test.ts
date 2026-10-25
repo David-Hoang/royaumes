@@ -59,9 +59,13 @@ describe('Présentation des hauts faits', () => {
     const list = evaluate(stats({ upgrades: 5, gold: 200 }))
     expect(obtainedFirst(list).map((a) => a.id)).toEqual([
       'builder',
+      'first-coins',
       'fortune',
       'first-blood',
       'veteran',
+      'big-fortune',
+      'treasurer',
+      'gold-king',
     ])
   })
 
@@ -82,7 +86,7 @@ describe('Présentation des hauts faits', () => {
   })
 
   it('ne propose aucun objectif quand tout est obtenu', () => {
-    const all = evaluate(stats({ gamesPlayed: 10, gamesWon: 1, upgrades: 5, gold: 200 }))
+    const all = evaluate(stats({ gamesPlayed: 10, gamesWon: 1, upgrades: 5, gold: 2000 }))
     expect(nextGoal(all)).toBeNull()
   })
 })
