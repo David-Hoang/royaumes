@@ -163,6 +163,8 @@ export const achievementsProjection: Projection = {
 
       case 'TradeCompleted': {
         // L'échange réussi est attribué au vendeur de l'offre ; l'offre est alors terminée.
+        // DETTE TECHNIQUE (docs/qualite/dette-technique.md, DT-015) : un échange entre deux
+        // comptes d'un même joueur est compté comme n'importe quel autre.
         const offerId = idFrom(event, OFFER_STREAM_PREFIX)
         const [offer] = await tx.select().from(offers).where(eq(offers.offerId, offerId))
         if (offer) {

@@ -30,6 +30,8 @@ const RETRY_MS = 1_000
 /** Nombre maximal de relectures pour un même événement annoncé. */
 const MAX_READS = 10
 
+// DETTE TECHNIQUE (docs/qualite/dette-technique.md, DT-016) : les hauts faits déjà montrés sont
+// retenus dans le navigateur, et non sur le serveur.
 /** Clé du stockage du navigateur : les hauts faits déjà montrés à ce joueur. */
 const seenKey = (userId: string) => `royaumes:achievements-seen:${userId}`
 
