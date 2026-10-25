@@ -7,6 +7,7 @@ import type { AchievementsApi } from './api'
 import {
   ACHIEVEMENTS_CHANNEL,
   type AchievementStatus,
+  groupByCategory,
   newlyUnlocked,
   nextGoal,
   obtainedFirst,
@@ -173,15 +174,22 @@ export function AchievementsScreen({ userId }: { userId: string }) {
           </p>
         </section>
       )}
-      <section className="panel" aria-label="Hauts faits du joueur">
-        {achievements && (
-          <ul className="achievements">
-            {obtainedFirst(achievements).map((a) => (
-              <AchievementCard key={a.id} achievement={a} fresh={fresh.includes(a.id)} />
-            ))}
-          </ul>
-        )}
-      </section>
+      {achievements &&
+        groupByCategory(achievements).map(({ category, achievements: group }) => (
+          <section key={category} className="panel">
+            <h2>
+              <Entity kind={category} showLabel />{' '}
+              <span className="muted">
+                ({group.filter((a) => a.unlocked).length} / {group.length})
+              </span>
+            </h2>
+            <ul className="achievements">
+              {obtainedFirst(group).map((a) => (
+                <AchievementCard key={a.id} achievement={a} fresh={fresh.includes(a.id)} />
+              ))}
+            </ul>
+          </section>
+        ))}
     </>
   )
 }

@@ -1,10 +1,11 @@
-import { ACHIEVEMENTS, type AchievementDef, type Stats } from './catalog'
+import { ACHIEVEMENTS, type AchievementDef, CATEGORIES, type Category, type Stats } from './catalog'
 
 /** État d'un haut fait pour un joueur : sa progression, et s'il est obtenu. */
 export interface AchievementStatus {
   id: string
   name: string
   description: string
+  category: Category
   /** Valeur du compteur, plafonnée au seuil. */
   progress: number
   threshold: number
@@ -20,6 +21,7 @@ function statusOf(def: AchievementDef, stats: Stats): AchievementStatus {
     id: def.id,
     name: def.name,
     description: def.description,
+    category: def.category,
     // Règle 5 : la progression ne dépasse jamais le seuil.
     progress: Math.min(value, def.threshold),
     threshold: def.threshold,
@@ -61,4 +63,17 @@ export function nextGoal(list: AchievementStatus[]): AchievementStatus | null {
     if (!best || a.progress / a.threshold > best.progress / best.threshold) best = a
   }
   return best
+}
+
+/**
+ * Regroupe les hauts faits par thème, dans l'ordre des thèmes ; un thème sans haut fait est
+ * omis. À l'intérieur d'un thème, l'ordre de la liste reçue est conservé.
+ */
+export function groupByCategory(
+  list: AchievementStatus[],
+): { category: Category; achievements: AchievementStatus[] }[] {
+  return CATEGORIES.map((category) => ({
+    category,
+    achievements: list.filter((a) => a.category === category),
+  })).filter((group) => group.achievements.length > 0)
 }

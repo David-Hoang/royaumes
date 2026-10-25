@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { EMPTY_STATS, evaluate, newlyUnlocked, nextGoal, obtainedFirst } from './achievements'
-import { ACHIEVEMENTS, type Stats } from './catalog'
+import {
+  EMPTY_STATS,
+  evaluate,
+  groupByCategory,
+  newlyUnlocked,
+  nextGoal,
+  obtainedFirst,
+} from './achievements'
+import { ACHIEVEMENTS, CATEGORIES, type Stats } from './catalog'
 
 /** Compteurs d'un joueur, avec quelques valeurs modifiées. */
 const stats = (changes: Partial<Stats>): Stats => ({ ...EMPTY_STATS, ...changes })
@@ -88,5 +95,24 @@ describe('Présentation des hauts faits', () => {
   it('ne propose aucun objectif quand tout est obtenu', () => {
     const all = evaluate(stats({ gamesPlayed: 10, gamesWon: 1, upgrades: 5, gold: 2000 }))
     expect(nextGoal(all)).toBeNull()
+  })
+})
+
+describe('Thèmes des hauts faits', () => {
+  it('range chaque haut fait dans un thème connu', () => {
+    for (const def of ACHIEVEMENTS) expect(CATEGORIES).toContain(def.category)
+  })
+
+  it("regroupe les hauts faits par thème, dans l'ordre des thèmes, sans thème vide", () => {
+    const groups = groupByCategory(evaluate(EMPTY_STATS))
+    const used = CATEGORIES.filter((c) => ACHIEVEMENTS.some((def) => def.category === c))
+    expect(groups.map((g) => g.category)).toEqual(used)
+  })
+
+  it('place chaque haut fait dans un seul groupe', () => {
+    const ids = groupByCategory(evaluate(EMPTY_STATS)).flatMap((g) =>
+      g.achievements.map((a) => a.id),
+    )
+    expect(ids.sort()).toEqual(ACHIEVEMENTS.map((def) => def.id).sort())
   })
 })
