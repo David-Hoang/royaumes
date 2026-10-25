@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { EMPTY_STATS, evaluate } from './achievements'
+import { EMPTY_STATS, evaluate, newlyUnlocked, nextGoal, obtainedFirst } from './achievements'
 import { ACHIEVEMENTS, type Stats } from './catalog'
 
 /** Compteurs d'un joueur, avec quelques valeurs modifiées. */
@@ -51,5 +51,38 @@ describe('Hauts faits', () => {
   it('mesure la progression par le compteur, plafonnée au seuil', () => {
     expect(statusOf(stats({ gold: 50 }), 'fortune').progress).toBe(50)
     expect(statusOf(stats({ gold: 5000 }), 'fortune').progress).toBe(200)
+  })
+})
+
+describe('Présentation des hauts faits', () => {
+  it("place les hauts faits obtenus en premier, en gardant l'ordre du catalogue", () => {
+    const list = evaluate(stats({ upgrades: 5, gold: 200 }))
+    expect(obtainedFirst(list).map((a) => a.id)).toEqual([
+      'builder',
+      'fortune',
+      'first-blood',
+      'veteran',
+    ])
+  })
+
+  it('repère les hauts faits obtenus depuis la lecture précédente', () => {
+    const list = evaluate(stats({ gamesWon: 1, upgrades: 5 }))
+    expect(newlyUnlocked(new Set(['first-blood']), list)).toEqual(['builder'])
+  })
+
+  it("ne repère rien quand rien n'a changé", () => {
+    const list = evaluate(stats({ gamesWon: 1 }))
+    expect(newlyUnlocked(new Set(['first-blood']), list)).toEqual([])
+  })
+
+  it('propose comme prochain objectif le haut fait non obtenu le plus avancé', () => {
+    // Vétéran : 9 sur 10 ; Bâtisseur : 1 sur 5 ; Fortune : 0 sur 200.
+    const list = evaluate(stats({ gamesWon: 1, gamesPlayed: 9, upgrades: 1 }))
+    expect(nextGoal(list)?.id).toBe('veteran')
+  })
+
+  it('ne propose aucun objectif quand tout est obtenu', () => {
+    const all = evaluate(stats({ gamesPlayed: 10, gamesWon: 1, upgrades: 5, gold: 200 }))
+    expect(nextGoal(all)).toBeNull()
   })
 })

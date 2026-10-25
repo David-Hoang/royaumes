@@ -36,3 +36,29 @@ function statusOf(def: AchievementDef, stats: Stats): AchievementStatus {
 export function evaluate(stats: Stats): AchievementStatus[] {
   return ACHIEVEMENTS.map((def) => statusOf(def, stats))
 }
+
+/** Les hauts faits obtenus d'abord ; à égalité, l'ordre du catalogue est conservé. */
+export function obtainedFirst(list: AchievementStatus[]): AchievementStatus[] {
+  return [...list].sort((a, b) => Number(b.unlocked) - Number(a.unlocked))
+}
+
+/** Identifiants des hauts faits obtenus dans la liste actuelle, mais pas dans la précédente. */
+export function newlyUnlocked(
+  previous: ReadonlySet<string>,
+  current: AchievementStatus[],
+): string[] {
+  return current.filter((a) => a.unlocked && !previous.has(a.id)).map((a) => a.id)
+}
+
+/**
+ * Prochain objectif : le haut fait non obtenu le plus avancé, en proportion de son seuil.
+ * À égalité, le premier du catalogue. Renvoie null quand tout est obtenu.
+ */
+export function nextGoal(list: AchievementStatus[]): AchievementStatus | null {
+  let best: AchievementStatus | null = null
+  for (const a of list) {
+    if (a.unlocked) continue
+    if (!best || a.progress / a.threshold > best.progress / best.threshold) best = a
+  }
+  return best
+}
