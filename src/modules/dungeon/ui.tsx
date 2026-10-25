@@ -2,7 +2,7 @@
 import { hc } from 'hono/client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { useChannel } from '@/platform/realtime/use-channel'
 import { Entity } from '@/ui/entity'
 import { useCountdown } from '@/ui/use-countdown'
@@ -20,6 +20,7 @@ import {
   type Monster,
   type OpenGame,
 } from './contracts'
+import { DoorArt, DungeonWall, Knight, MonsterArt } from './scene-art'
 
 /** Client HTTP typé, déduit de la sous-application Hono du module. */
 const client = hc<DungeonApi>('/api/dungeon')
@@ -48,6 +49,25 @@ const ERRORS: Record<ApiError['code'], string> = {
 const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   easy: 'Facile',
   hard: 'Difficile',
+}
+
+/** Couleurs de tunique des héros, dans l'ordre d'arrivée ; un compagnon porte du gris. */
+const CLOTHS = ['#8c2f2a', '#2d4f6e', '#4f6b3a', '#6a4a8a']
+const PLUMES = ['#b8463a', '#5f8fb8', '#8fbf6a', '#a98be0']
+
+/** Icône (tracé de 24 x 24) de chaque action. */
+const RADIAL = {
+  attack: 'M14.5 4.5L20 4l-.5 5.5L9 20l-4-4zM5 19l-2 2M7.5 13.5l3 3',
+  defend: 'M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z',
+  heal: 'M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z',
+} as const
+
+/** Chiffre qui s'envole au-dessus d'un combattant, à la fin d'une manche. */
+interface Floater {
+  key: string
+  target: string
+  text: string
+  kind: 'damage' | 'heal'
 }
 
 /** Libellé affiché pour chaque état de la connexion temps réel. */
@@ -162,6 +182,12 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
   // undefined : chargement en cours ; null : expédition introuvable.
   const [view, setView] = useState<GameView | null | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
+  // Menu radial ouvert autour du héros du joueur, et type de cible attendu après un choix.
+  const [targeting, setTargeting] = useState<'attack' | 'heal' | null>(null)
+  // Chiffres qui s'envolent à la fin d'une manche.
+  const [floaters, setFloaters] = useState<Floater[]>([])
+  const seenRound = useRef<number | null | undefined>(undefined)
+  const floatTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const param = { id: gameId }
 
   // REQUÊTE : lecture de la vue de l'expédition, filtrée pour le joueur.
@@ -220,6 +246,28 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
     checkDeadline,
   )
 
+  // DÉGÂTS ET SOINS : quand une nouvelle manche est résolue, ses effets s'envolent au-dessus
+  // des combattants. La manche déjà connue à l'ouverture de la page n'est pas rejouée.
+  useEffect(() => {
+    if (view === undefined) return
+    const round = view?.lastRound?.round ?? null
+    const known = seenRound.current
+    seenRound.current = round
+    if (known === undefined || round === null || round === known || !view?.lastRound) return
+    setFloaters(
+      view.lastRound.effects.map((effect, index) => ({
+        key: `${round}-${index}`,
+        target: effect.target,
+        text: `${effect.kind === 'damage' ? '-' : '+'}${effect.amount}`,
+        kind: effect.kind,
+      })),
+    )
+    // Le minuteur n'est pas annulé par une relecture de la vue : seule une nouvelle manche le remplace.
+    clearTimeout(floatTimer.current)
+    floatTimer.current = setTimeout(() => setFloaters([]), 1600)
+  }, [view])
+  useEffect(() => () => clearTimeout(floatTimer.current), [])
+
   const title = (
     <div className="row" style={{ justifyContent: 'space-between' }}>
       <h1>
@@ -255,42 +303,213 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
   const me = view.heroes.find((hero) => hero.id === userId)
   const standingMonsters = view.monsters.filter((monster) => monster.hp > 0)
   const standingHeroes = view.heroes.filter((hero) => hero.hp > 0)
+  const inCombat = view.phase === 'combat'
+  const ended = view.phase === 'won' || view.phase === 'lost'
+  const canChoose = inCombat && !!me && me.hp > 0 && !me.action
+
+  // Un choix d'action referme le mode de ciblage.
+  async function choose(action: Action) {
+    setTargeting(null)
+    await act(action)
+  }
+  // Une cible n'est demandée que lorsqu'il y a le choix : sinon l'action part directement.
+  function pickAttack() {
+    const [only] = standingMonsters
+    if (only && standingMonsters.length === 1) return choose({ type: 'attack', target: only.id })
+    setTargeting('attack')
+  }
+  function pickHeal() {
+    const [only] = standingHeroes
+    if (only && standingHeroes.length === 1) return choose({ type: 'heal', target: only.id })
+    setTargeting('heal')
+  }
+
+  // La phrase du narrateur, sous la scène : ce qu'il est possible de faire maintenant.
+  let narration = "Les héros se rassemblent à l'entrée du donjon."
+  if (view.phase === 'exploring') {
+    narration =
+      view.turnHeroId === userId
+        ? "C'est à vous : cliquez sur la porte pour l'ouvrir."
+        : `Au tour de ${nameOf(view.turnHeroId ?? '')} d'ouvrir la porte.`
+  }
+  if (inCombat) {
+    if (me?.action) {
+      narration = `Votre choix : ${describeAction(me.action, nameOf)}. En attente des autres héros.`
+    } else if (canChoose) {
+      narration = targeting ? 'Choisissez votre cible.' : "Choisissez l'action de votre héros."
+    } else {
+      narration = 'Vous observez le combat.'
+    }
+  }
+  if (ended)
+    narration = view.phase === 'won' ? 'Le donjon est vaincu !' : 'Le donjon vous a vaincus.'
 
   return (
     <>
       {title}
 
-      {/* Héros de l'expédition. */}
-      <section className="panel heroes" aria-label="Héros">
-        {view.heroes.map((hero) => (
-          <div
-            key={hero.id}
-            className="fighter"
-            data-down={hero.hp <= 0}
-            data-turn={view.turnHeroId === hero.id}
-          >
-            <span className="fighter-name">
-              <Entity kind={hero.companion ? 'companion' : 'hero'} /> {hero.name}
-              {hero.id === view.hostId && <span className="muted"> (hôte)</span>}
-              {hero.companion && <span className="muted"> (piloté par l'ordinateur)</span>}
+      <section className="scene dungeon-scene" aria-label="Le donjon">
+        <DungeonWall />
+        <ul className="chips" aria-label="État de l'expédition">
+          <li className="chip">
+            {view.room < 0 ? 'Entrée' : `Salle ${view.room + 1} sur ${view.roomCount}`}
+          </li>
+          <li className="chip">
+            <Entity kind="gold" /> {view.loot}
+          </li>
+        </ul>
+        {targeting && (
+          <div className="chips chips-center">
+            <span className="chip">
+              {targeting === 'attack' ? 'Cliquez sur un monstre' : 'Cliquez sur un héros'}
             </span>
-            <span className="fighter-tags">
-              {view.phase === 'combat' && hero.ready && <span className="ok">prêt</span>}
-              {view.turnHeroId === hero.id && <span className="ok">à son tour</span>}
-              <span className="muted">
-                {hero.hp}/{hero.maxHp} PV
-              </span>
-            </span>
-            <span className="hp">
-              <i
-                style={{
-                  width: `${Math.max(0, (hero.hp / hero.maxHp) * 100)}%`,
-                }}
-              />
-            </span>
+            <button type="button" className="chip" onClick={() => setTargeting(null)}>
+              Annuler
+            </button>
           </div>
-        ))}
+        )}
+        {remaining !== null && (
+          <div className="chips chips-right">
+            <span className="chip countdown">{remaining} s</span>
+          </div>
+        )}
+
+        <div className="scene-heroes">
+          {view.heroes.map((hero, index) => {
+            const healable = targeting === 'heal' && hero.hp > 0
+            const onClick = healable ? () => choose({ type: 'heal', target: hero.id }) : undefined
+            return (
+              <div
+                key={hero.id}
+                className="fig-wrap"
+                data-down={hero.hp <= 0}
+                data-turn={view.turnHeroId === hero.id}
+              >
+                <Fig onClick={onClick} glow={healable} label={`Soigner ${hero.name}`}>
+                  <Knight
+                    cloth={
+                      hero.companion ? '#4a443c' : (CLOTHS[index % CLOTHS.length] ?? '#8c2f2a')
+                    }
+                    plume={
+                      hero.companion ? '#9a9288' : (PLUMES[index % PLUMES.length] ?? '#b8463a')
+                    }
+                  />
+                </Fig>
+                {floaters
+                  .filter((floater) => floater.target === hero.id)
+                  .map((floater) => (
+                    <span key={floater.key} className="floater" data-kind={floater.kind}>
+                      {floater.text}
+                    </span>
+                  ))}
+                <span className="fig-name">{hero.name}</span>
+                <span className="fig-tags">
+                  {hero.id === view.hostId && 'hôte '}
+                  {hero.companion && "(piloté par l'ordinateur) "}
+                  {inCombat && hero.ready && 'prêt '}
+                  {view.turnHeroId === hero.id && 'à son tour'}
+                </span>
+                <span className="hp">
+                  <i style={{ width: `${Math.max(0, (hero.hp / hero.maxHp) * 100)}%` }} />
+                </span>
+                <span className="fig-tags">
+                  {hero.hp}/{hero.maxHp} PV
+                </span>
+              </div>
+            )
+          })}
+        </div>
+
+        {inCombat && (
+          <div className="scene-monsters">
+            {view.monsters.map((monster) => {
+              const aimable = targeting === 'attack' && monster.hp > 0
+              return (
+                <div key={monster.id} className="fig-wrap" data-down={monster.hp <= 0}>
+                  <Fig
+                    onClick={
+                      aimable ? () => choose({ type: 'attack', target: monster.id }) : undefined
+                    }
+                    glow={aimable}
+                    label={`Attaquer ${monsterName(monster, view.monsters)}`}
+                  >
+                    <MonsterArt kind={monster.kind} />
+                  </Fig>
+                  {floaters
+                    .filter((floater) => floater.target === monster.id)
+                    .map((floater) => (
+                      <span key={floater.key} className="floater" data-kind={floater.kind}>
+                        {floater.text}
+                      </span>
+                    ))}
+                  <span className="fig-name">{monsterName(monster, view.monsters)}</span>
+                  <span className="hp monster-hp">
+                    <i style={{ width: `${Math.max(0, (monster.hp / monster.maxHp) * 100)}%` }} />
+                  </span>
+                  <span className="fig-tags">
+                    {monster.hp}/{monster.maxHp} PV
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {view.phase === 'exploring' && (
+          <div className="scene-door">
+            <Fig
+              onClick={view.turnHeroId === userId ? openDoor : undefined}
+              glow={view.turnHeroId === userId}
+              label="Ouvrir la porte suivante"
+            >
+              <DoorArt />
+            </Fig>
+            {view.currentRoom?.kind === 'treasure' && (
+              <span className="fig-tags">Un trésor de {view.currentRoom.gold} or</span>
+            )}
+            {view.currentRoom?.kind === 'empty' && <span className="fig-tags">Une salle vide</span>}
+          </div>
+        )}
+
+        {ended && (
+          <div className="modal-back">
+            <dialog open className="scroll modal" aria-label="Fin de l'expédition">
+              <h2>{view.phase === 'won' ? 'Victoire !' : 'Défaite...'}</h2>
+              <p>
+                Butin de l'expédition : <Entity kind="gold" /> {view.loot}
+              </p>
+              <Link className="button" href="/dungeon">
+                Retour au Donjon
+              </Link>
+            </dialog>
+          </div>
+        )}
       </section>
+
+      <p className="scroll say">{narration}</p>
+      {canChoose && !targeting && (
+        <div className="actions">
+          <button type="button" onClick={pickAttack}>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d={RADIAL.attack} />
+            </svg>
+            Attaquer
+          </button>
+          <button type="button" onClick={() => choose({ type: 'defend' })}>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d={RADIAL.defend} />
+            </svg>
+            Défendre
+          </button>
+          <button type="button" onClick={pickHeal}>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d={RADIAL.heal} />
+            </svg>
+            Soigner
+          </button>
+        </div>
+      )}
+      {error && <p className="error">{error}</p>}
 
       {/* Salon : rejoindre ou lancer l'expédition. */}
       {view.phase === 'lobby' && (
@@ -319,111 +538,6 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
         </div>
       )}
 
-      {/* Exploration : ouvrir la porte suivante, à tour de rôle. */}
-      {view.phase === 'exploring' && (
-        <div className="panel">
-          <div className="row" style={{ justifyContent: 'space-between' }}>
-            <h2>Exploration</h2>
-            {remaining !== null && (
-              <span className="countdown" title="La porte s'ouvrira d'elle-même">
-                {remaining} s
-              </span>
-            )}
-          </div>
-          <p>
-            Salle {view.room + 1} sur {view.roomCount}
-            {view.currentRoom?.kind === 'treasure' && ` : un trésor de ${view.currentRoom.gold} or`}
-            {view.currentRoom?.kind === 'empty' && ' : une salle vide'}
-            {' - '}
-            <Entity kind="gold" /> {view.loot}
-          </p>
-          {view.turnHeroId === userId ? (
-            <button type="button" onClick={openDoor}>
-              <Entity kind="door" /> Ouvrir la porte suivante
-            </button>
-          ) : (
-            <p className="muted">Au tour de {nameOf(view.turnHeroId ?? '')}.</p>
-          )}
-        </div>
-      )}
-
-      {/* Combat : monstres, compte à rebours et choix de l'action. */}
-      {view.phase === 'combat' && (
-        <div className="panel">
-          <div className="row" style={{ justifyContent: 'space-between' }}>
-            <h2>
-              Combat - salle {view.room + 1}, manche {view.round}
-            </h2>
-            {remaining !== null && <span className="countdown">{remaining} s</span>}
-          </div>
-          <div className="monsters">
-            {view.monsters.map((monster) => (
-              <div key={monster.id} className="fighter" data-down={monster.hp <= 0}>
-                <span className="fighter-name">
-                  <Entity kind={monster.kind} /> {monsterName(monster, view.monsters)}
-                </span>
-                <span className="muted">
-                  {monster.hp}/{monster.maxHp} PV
-                </span>
-                <span className="hp">
-                  <i
-                    style={{
-                      width: `${Math.max(0, (monster.hp / monster.maxHp) * 100)}%`,
-                    }}
-                  />
-                </span>
-              </div>
-            ))}
-          </div>
-          {me && me.hp > 0 && !me.action && (
-            <div className="actions">
-              {standingMonsters.map((monster) => (
-                <button
-                  key={monster.id}
-                  type="button"
-                  onClick={() =>
-                    act({
-                      type: 'attack',
-                      target: monster.id,
-                    })
-                  }
-                >
-                  Attaquer {monsterName(monster, view.monsters)}
-                </button>
-              ))}
-              <button type="button" onClick={() => act({ type: 'defend' })}>
-                Se défendre
-              </button>
-              {standingHeroes.map((hero) => (
-                <button
-                  key={hero.id}
-                  type="button"
-                  onClick={() => act({ type: 'heal', target: hero.id })}
-                >
-                  Soigner {hero.name}
-                </button>
-              ))}
-            </div>
-          )}
-          {me?.action && (
-            <p className="muted">
-              Votre choix : {describeAction(me.action, nameOf)}. En attente des autres héros.
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Fin de l'expédition. */}
-      {(view.phase === 'won' || view.phase === 'lost') && (
-        <div className="panel">
-          <h2>{view.phase === 'won' ? 'Victoire !' : 'Défaite...'}</h2>
-          <p>
-            Butin de l'expédition : <Entity kind="gold" /> {view.loot}
-          </p>
-          <Link href="/dungeon">Retour au Donjon</Link>
-        </div>
-      )}
-
       {/* Résultat de la dernière manche, connu de tous une fois la manche résolue. */}
       {view.lastRound && (
         <section className="panel" aria-label="Dernière manche">
@@ -443,8 +557,26 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
           </ul>
         </section>
       )}
-
-      {error && <p className="error">{error}</p>}
     </>
+  )
+}
+
+/** Un élément de la scène : un bouton quand on peut cliquer dessus, un simple dessin sinon. */
+function Fig({
+  onClick,
+  glow,
+  label,
+  children,
+}: {
+  onClick?: () => void
+  glow: boolean
+  label: string
+  children: ReactNode
+}) {
+  if (!onClick) return <div className="fig">{children}</div>
+  return (
+    <button type="button" className="fig" data-glow={glow} aria-label={label} onClick={onClick}>
+      {children}
+    </button>
   )
 }
