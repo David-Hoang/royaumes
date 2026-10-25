@@ -82,7 +82,7 @@ Un module n'est accessible depuis l'extérieur que par ses entrées publiques : 
 | `ranking` | Classement des joueurs, construit à partir des événements du Village et du Donjon | `/api/ranking` |
 | `market` | Marché : échanges de ressources entre joueurs, par une saga orchestrée | `/api/market` |
 | `tavern` | Taverne : salon de discussion commun et présence des joueurs, sans Event Sourcing | `/api/tavern` |
-| `achievements` | Hauts faits : distinctions gagnées à des seuils (victoires, expéditions, améliorations, or), construites à partir des événements du Donjon et du Village | `/api/achievements` |
+| `achievements` | Hauts faits : 22 distinctions gagnées à des seuils (victoires, or, niveau des bâtiments, compagnons, offres), rangées par thème et réunies en séries, construites à partir des événements du Donjon, du Village et du Marché | `/api/achievements` |
 
 
 ## Temps réel
@@ -146,9 +146,11 @@ Les messages de la Taverne sont conservés trente jours, et la présence d'un jo
 minutes après son dernier signal. Ces durées sont appliquées à chaque lecture, et chaque jour
 par la tâche planifiée `/api/cron/daily`.
 
-Le module Hauts faits conserve les compteurs d'un joueur (expéditions jouées et gagnées,
-améliorations, or rapporté), rattachés à son identifiant, sans aucun nom. L'export les présente
-dans la section `achievements`, et l'effacement du compte les supprime.
+Le module Hauts faits conserve les compteurs d'un joueur (expéditions jouées et gagnées, or
+rapporté, améliorations, niveau de chaque bâtiment, compagnons, offres publiées et conclues),
+rattachés à son identifiant, sans aucun nom. L'export les présente dans la section
+`achievements`, et l'effacement du compte les supprime, ainsi que le vendeur retenu pour ses
+offres en cours.
 
 
 ## Base de données
@@ -232,9 +234,11 @@ pseudonymisée : plus aucune table ne le relie à une personne (ADR 0008).
 
 Les hauts faits ne sont pas stockés : ils sont calculés à chaque lecture à partir des compteurs,
 donc leur date d'obtention n'est pas conservée (ADR 0010). Les compteurs dépendent de la forme
-des événements du Donjon et du Village : un événement modifié sans réexamen de ses lecteurs les
-fausserait sans signal d'erreur (ADR 0011). La première lecture après la création des tables
-rejoue tout le journal, et sa durée croît avec sa taille.
+des événements du Donjon, du Village et du Marché : un événement modifié sans réexamen de ses
+lecteurs les fausserait sans signal d'erreur (ADR 0011). Chaque nouveau compteur augmente la
+version de la projection, qui rejoue alors tout le journal à la lecture suivante ; sa durée
+croît avec la taille du journal. La série « Offres réussies » ne compte que les offres que le
+joueur a publiées, et non les achats.
 
 Le service Village extrait n'est pas prêt pour la production : ses migrations, la pagination
 de son flux publié et la distribution de sa boîte d'envoi restent à traiter. Ces limites, et
