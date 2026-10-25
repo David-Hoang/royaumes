@@ -376,6 +376,55 @@ input:focus-visible {
     }
 }
 
+/* Carte du royaume : l'écran d'accueil. Les lieux sont des liens posés sur le dessin. */
+.map {
+    position: relative;
+    aspect-ratio: 1280 / 800;
+    margin: 0 5px;
+    background: repeating-linear-gradient(90deg, #2e2218 0 138px, #241a12 138px 141px), #2a1f16;
+    box-shadow: 0 0 0 1px var(--ink-dark), 0 0 0 3px var(--iron-light), 0 0 0 5px var(--ink-dark), 0 12px 28px rgba(0, 0, 0, 0.5);
+}
+.map-art {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+.loc {
+    position: absolute;
+    transform: translate(-50%, -52%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 14%;
+    text-decoration: none;
+    color: #2b1d10;
+}
+.loc svg {
+    width: 70%;
+    height: auto;
+    filter: drop-shadow(0 4px 3px rgba(40, 25, 10, 0.5));
+    transition: transform 0.2s;
+}
+.loc:hover svg, .loc:focus-visible svg {
+    transform: translateY(-6px) scale(1.1);
+}
+.loc-label {
+    font-family: var(--font-display);
+    font-size: clamp(0.85rem, 1.7vw, 1.4rem);
+    letter-spacing: 0.04em;
+    text-align: center;
+    text-shadow: 0 1px 0 #f3e6bf;
+}
+.loc:hover .loc-label {
+    color: var(--wax);
+}
+.say {
+    margin: 22px 5px 0;
+    font-style: italic;
+    font-size: 1.2rem;
+}
+
 /* Indicateur de connexion temps réel. */
 .status { font-size: 0.9rem; font-style: italic; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
 .status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }

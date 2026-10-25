@@ -1,12 +1,19 @@
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { currentUser } from '@/bootstrap/server'
+import { AppShell } from '@/ui/app-shell'
+import { KingdomMap } from '@/ui/kingdom-map'
 
-// La redirection dépend de la session : la page est évaluée à chaque requête.
+// L'affichage dépend de la session : la page est évaluée à chaque requête.
 export const dynamic = 'force-dynamic'
 
-/** Page d'accueil : oriente vers le village si un joueur est connecté, vers la connexion sinon. */
+/** Page d'accueil : la carte du royaume pour un joueur connecté, la connexion sinon. */
 export default async function Home() {
   const user = await currentUser(await headers())
-  redirect(user ? '/village' : '/login')
+  if (!user) redirect('/login')
+  return (
+    <AppShell userName={user.name}>
+      <KingdomMap />
+    </AppShell>
+  )
 }

@@ -50,7 +50,7 @@ export default function LoginPage() {
     setPending(false)
 
     if (result.error) setError(messageFor(result.error))
-    else router.push('/village')
+    else router.push('/')
   }
 
   return (

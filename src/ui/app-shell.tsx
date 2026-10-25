@@ -4,16 +4,6 @@ import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { authClient } from '@/platform/auth/client'
 
-/** Liens de navigation : chaque module ajouté au jeu y reçoit une entrée. */
-export const NAV = [
-  { href: '/village', kind: 'village', label: 'Village' },
-  { href: '/dungeon', kind: 'dungeon', label: 'Donjon' },
-  { href: '/ranking', kind: 'ranking', label: 'Classement' },
-  { href: '/market', kind: 'market', label: 'Marché' },
-  { href: '/tavern', kind: 'tavern', label: 'Taverne' },
-  { href: '/achievements', kind: 'achievements', label: 'Hauts faits' },
-]
-
 /** Une torche qui vacille ; décorative, donc cachée aux lecteurs d'écran. */
 function Torch() {
   return (
@@ -30,7 +20,10 @@ function Torch() {
   )
 }
 
-/** Cadre de l'espace de jeu : barre de fer, navigation, nom du joueur et déconnexion. */
+/**
+ * Cadre de l'espace de jeu : barre de fer, retour à la carte, nom du joueur et déconnexion.
+ * La navigation entre les écrans se fait par la carte du royaume, et non par des onglets.
+ */
 export function AppShell({ userName, children }: { userName: string; children: ReactNode }) {
   const pathname = usePathname()
 
@@ -52,15 +45,7 @@ export function AppShell({ userName, children }: { userName: string; children: R
           <Torch />
         </div>
         <nav className="hud-nav" aria-label="Navigation principale">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={pathname.startsWith(item.href) ? 'page' : undefined}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {pathname !== '/' && <Link href="/">Carte du royaume</Link>}
         </nav>
         <div className="hud-user">
           <span>{userName}</span>
