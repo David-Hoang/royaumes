@@ -957,3 +957,29 @@ button.fig[data-glow='true'] svg { animation: none; }
         to { transform: translate(1340px, 230px); }
     }
 }
+
+/* Survols : chaque élément cliquable doit réagir de façon visible, sur fond sombre comme sur parchemin. */
+a { text-underline-offset: 3px; }
+a:hover { color: #fff3c9; text-decoration-thickness: 2px; text-shadow: 0 0 8px rgba(242, 207, 126, 0.55); }
+.scroll a, .stall-board a, .ledger a, .bubble a, .seal-bubble a { color: var(--wax); }
+.scroll a:hover, .stall-board a:hover, .ledger a:hover, .bubble a:hover, .seal-bubble a:hover { color: #4a1612; text-shadow: none; }
+button:hover:not(:disabled), a.button:hover {
+    filter: brightness(1.18) drop-shadow(0 0 6px rgba(242, 207, 126, 0.75));
+}
+button.link:hover:not(:disabled) { filter: none; color: #fff3c9; text-decoration: underline; text-shadow: 0 0 8px rgba(242, 207, 126, 0.55); }
+button.secondary:hover:not(:disabled) { color: var(--accent-light); filter: brightness(1.3) drop-shadow(0 0 5px rgba(242, 207, 126, 0.5)); }
+button.danger:hover:not(:disabled) { filter: brightness(1.2) drop-shadow(0 0 6px rgba(184, 70, 58, 0.8)); }
+.hud-nav a:hover { color: #fff3c9; border-bottom-color: var(--accent-dark); background: rgba(224, 180, 90, 0.12); }
+.spot:hover .spot-flag { filter: brightness(1.3); color: #fff3c9; }
+.spot:hover .spot-art { transform: translateY(-4px); }
+.loc:hover .loc-label { text-decoration: underline; text-decoration-thickness: 2px; }
+.ranking tbody tr:hover { background: rgba(224, 180, 90, 0.16); }
+.offers li:hover, .ledger li:hover { background: rgba(224, 180, 90, 0.12); }
+.seal:hover .seal-wax { filter: brightness(1.25); transform: translateY(-3px); }
+.seal:hover .seal-name { color: var(--accent-light); }
+.seal[data-unlocked='false']:hover .seal-wax { filter: grayscale(1) brightness(1.4); opacity: 0.85; }
+.seal-wax { transition: transform 0.15s, filter 0.15s; }
+button.fig:hover svg { filter: drop-shadow(0 0 8px var(--accent-light)); }
+.stall:hover { transform: translateY(-2px); }
+.stall { transition: transform 0.15s; }
+@media (prefers-reduced-motion: reduce) { .seal:hover .seal-wax, .stall:hover, .spot:hover .spot-art { transform: none; } }
