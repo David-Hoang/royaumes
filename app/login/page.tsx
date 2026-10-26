@@ -3,7 +3,6 @@ import { useRouter } from 'next/navigation'
 import { type FormEvent, useState } from 'react'
 import { HealthStatus } from '@/modules/system/ui'
 import { authClient } from '@/platform/auth/client'
-import { Entity } from '@/ui/entity'
 
 /**
  * Messages affichés pour les erreurs renvoyées par Better Auth.
@@ -55,11 +54,30 @@ export default function LoginPage() {
 
   return (
     <>
-      <h1>
-        <Entity kind="village" /> Royaumes
-      </h1>
-      <p className="muted">{mode === 'signIn' ? 'Connexion' : 'Création de compte'}</p>
-      <div className="panel">
+      <header className="title-screen">
+        <svg viewBox="0 0 80 96" aria-hidden="true">
+          <path
+            d="M8 10 H72 V50 C72 72 56 86 40 92 C24 86 8 72 8 50 Z"
+            fill="#8c2f2a"
+            stroke="#1a120c"
+            strokeWidth={4}
+            strokeLinejoin="round"
+          />
+          <path
+            d="M20 44 L24 28 L32 38 L40 22 L48 38 L56 28 L60 44 Z"
+            fill="#e0b45a"
+            stroke="#1a120c"
+            strokeWidth={3}
+            strokeLinejoin="round"
+          />
+          <path d="M22 52 H58" stroke="#e0b45a" strokeWidth={4} strokeLinecap="round" />
+        </svg>
+        <h1>Royaumes</h1>
+        <p className="muted">
+          {mode === 'signIn' ? 'Entrez dans le royaume' : 'Fondez votre place dans le royaume'}
+        </p>
+      </header>
+      <div className="panel login-panel">
         <form onSubmit={submit}>
           {mode === 'signUp' && (
             <input name="name" placeholder="Pseudo" required minLength={2} maxLength={30} />
