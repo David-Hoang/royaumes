@@ -4,6 +4,10 @@ Jeu web multijoueur servant de support au module Architecture et pilotage techni
 Le projet est organisé en monolithe modulaire : une application Next.js unique, découpée
 en une plateforme technique et en modules métier aux frontières vérifiées automatiquement.
 
+L'interface est conçue comme un royaume à parcourir : la page d'accueil est une carte sur laquelle on
+clique pour entrer dans la taverne, le village, le donjon, le marché, l'arène du classement ou la salle
+des trophées. Chaque lieu est une scène illustrée, dessinée en SVG sans image externe.
+
 ## Prérequis
 
 - Node.js 22 ou supérieur
@@ -58,7 +62,7 @@ src/
   modules/            Modules métier, un répertoire par contexte délimité
   bootstrap/          Racine de composition de l'application
   services/           Racines de composition des services extraits
-  ui/                 Thème et composants d'interface partagés
+  ui/                 Thème, icônes, carte du royaume et composants d'interface partagés
 scripts/              Scripts d'exploitation, de mesure et de démarrage du service extrait
 drizzle/              Migrations de la base de données
 perf/                 Budget de performance et résultats des tests de charge

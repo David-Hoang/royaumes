@@ -55,7 +55,7 @@ L'interface web ne communique jamais directement avec la base : toute lecture et
 ```mermaid
 flowchart TB
   route["Route d'API<br/>[app/api/[[...route]]/route.ts]<br/>Transmet toute requête /api à Hono"]
-  pages["Pages du jeu<br/>[app/(jeu)/]<br/>Vérifient la session avant tout rendu"]
+  pages["Pages du jeu<br/>[app/(jeu)/]<br/>Vérifient la session avant tout rendu,<br/>puis que le village est fondé"]
   subgraph bootstrap["src/bootstrap"]
     server["server.ts<br/>Instance unique de l'application,<br/>de la base et de l'authentification"]
     createapi["create-api.ts<br/>Assemble plateforme et modules,<br/>protège les routes"]
