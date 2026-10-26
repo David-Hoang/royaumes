@@ -845,3 +845,39 @@ button.fig[data-glow='true'] svg { animation: none; }
     border: 6px solid transparent; border-top-color: var(--ink-dark);
 }
 @media (prefers-reduced-motion: no-preference) { .speech { animation: achievement-pop 0.5s ease-out; } }
+
+/* Marché : un étal par offre, avec les quantités en grand. */
+.stalls { list-style: none; margin: 0 0 24px; padding: 0; display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.stall {
+    display: grid; gap: 10px; align-content: start; padding: 0 12px 12px; background: var(--parch); color: var(--ink-dark);
+    border: 3px solid var(--ink-dark); box-shadow: 0 6px 0 #5a4430, 0 10px 14px rgba(0, 0, 0, 0.5);
+}
+.stall-seller {
+    margin: 0 -12px; padding: 5px 12px; background: var(--wax); color: #f1e6d3; border-bottom: 3px solid var(--ink-dark);
+    font-family: var(--font-display); font-size: 0.95rem; letter-spacing: 0.04em;
+}
+.deal { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
+.deal-arrow { font-size: 1.3rem; color: var(--wax); }
+.goods { display: grid; gap: 4px; justify-items: center; text-align: center; }
+.goods-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: #5a4430; }
+.goods-items { display: grid; gap: 4px; justify-items: center; }
+.good { display: inline-flex; align-items: center; gap: 6px; }
+.good .entity { font-size: 1.5rem; line-height: 1; }
+.good strong { font-family: var(--font-display); font-size: 1.25rem; line-height: 1; }
+
+/* Votre étal : un registre, une ligne par offre. */
+.ledger { padding: 10px 14px; margin-bottom: 24px; }
+.ledger h2 { margin: 0 0 8px; color: var(--ink-dark); }
+.ledger ul { list-style: none; margin: 0; padding: 0; }
+.ledger li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 6px 0; border-top: 1px dashed #5a4430; }
+.ledger li:first-child { border-top: 0; }
+.ledger-deal { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; flex: 1 1 200px; }
+.ledger .deal-arrow { font-size: 1rem; }
+.pill {
+    display: inline-flex; align-items: center; gap: 6px; padding: 1px 10px; border: 2px solid var(--ink-dark);
+    border-radius: 999px; background: #f1e6d3; font-size: 1rem;
+}
+.pill strong { font-family: var(--font-display); }
+.ledger-state { font-size: 0.8rem; color: #5a4430; }
+.ledger-state[data-status='open'] { color: #3f6b2f; font-weight: 700; }
+.ledger-state[data-status='rejected'] { color: var(--wax); font-weight: 700; }

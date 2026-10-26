@@ -51,14 +51,30 @@ const ERRORS: Record<OfferError['code'] | 'INVALID_INPUT', string> = {
 const RETRY_MS = 1_000
 const MAX_READS = 10
 
-/** Affiche des quantités de ressources : « 60 bois, 30 pierre ». */
-function AmountsText({ amounts }: { amounts: Amounts }) {
+/** Des quantités en grand, une pastille par ressource : l'icône, puis le nombre. */
+function Goods({ amounts, label }: { amounts: Amounts; label: string }) {
+  return (
+    <div className="goods">
+      <span className="goods-label">{label}</span>
+      <div className="goods-items">
+        {Object.entries(amounts).map(([resource, amount]) => (
+          <span key={resource} className="good">
+            <Entity kind={resource} />
+            <strong>{amount}</strong>
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** Des quantités sur une ligne, en pastilles : le nombre, puis l'icône. */
+function Pills({ amounts }: { amounts: Amounts }) {
   return (
     <>
-      {Object.entries(amounts).map(([resource, amount], index) => (
-        <span key={resource}>
-          {index > 0 && ', '}
-          {amount} <Entity kind={resource} />
+      {Object.entries(amounts).map(([resource, amount]) => (
+        <span key={resource} className="pill">
+          <strong>{amount}</strong> <Entity kind={resource} />
         </span>
       ))}
     </>
@@ -200,18 +216,28 @@ export function MarketScreen() {
         </p>
       )}
 
-      <section className="panel" aria-label="Vos offres">
-        <h2>Vos offres</h2>
-        {mine.length === 0 && <p className="muted">Aucune offre en cours.</p>}
-        <ul className="offers">
+      <section className="scroll ledger" aria-label="Vos offres">
+        <h2>Votre étal</h2>
+        {mine.length === 0 && <p className="muted">Votre étal est vide : publiez une offre.</p>}
+        <ul>
           {mine.map((offer) => (
             <li key={offer.offerId}>
-              <span>
-                <AmountsText amounts={offer.give} /> contre <AmountsText amounts={offer.want} />{' '}
-                <span className="muted">({OFFER_STATUS[offer.status]})</span>
+              <span className="ledger-deal">
+                <Pills amounts={offer.give} />
+                <span className="deal-arrow" aria-hidden="true">
+                  &rarr;
+                </span>
+                <Pills amounts={offer.want} />
+              </span>
+              <span className="ledger-state" data-status={offer.status}>
+                {OFFER_STATUS[offer.status]}
               </span>
               {offer.status === 'open' && (
-                <button type="button" onClick={() => withdrawOffer(offer.offerId)}>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => withdrawOffer(offer.offerId)}
+                >
                   Retirer
                 </button>
               )}
@@ -220,18 +246,22 @@ export function MarketScreen() {
         </ul>
       </section>
 
-      <section className="panel" aria-label="Offres des autres joueurs">
-        <h2>Offres des autres joueurs</h2>
-        {others.length === 0 && <p className="muted">Aucune offre disponible.</p>}
-        <ul className="offers">
+      <section aria-label="Offres des autres joueurs">
+        <h2>Les étals du marché</h2>
+        {others.length === 0 && <p className="scroll say">Aucun marchand pour le moment.</p>}
+        <ul className="stalls">
           {others.map((offer) => (
-            <li key={offer.offerId}>
-              <span>
-                {offer.sellerName} cède <AmountsText amounts={offer.give} /> contre{' '}
-                <AmountsText amounts={offer.want} />
-              </span>
+            <li key={offer.offerId} className="stall">
+              <p className="stall-seller">{offer.sellerName}</p>
+              <div className="deal">
+                <Goods amounts={offer.give} label="Cède" />
+                <span className="deal-arrow" aria-hidden="true">
+                  &rarr;
+                </span>
+                <Goods amounts={offer.want} label="Veut" />
+              </div>
               <button type="button" onClick={() => acceptOffer(offer.offerId)}>
-                Accepter
+                Accepter l'échange
               </button>
             </li>
           ))}
