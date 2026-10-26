@@ -29,6 +29,9 @@ function Sketch({ href }: { href: string }) {
           <path d="M14 90 V52 L50 26 L86 52 V90 Z" fill="#8a5a33" {...line} />
           <path d="M8 56 L50 22 L92 56 Z" fill="#5a3a22" {...line} />
           <path d="M42 90 V68 a8 8 0 0 1 16 0 V90 Z" fill="#2a1810" {...line} />
+          <rect x="66" y="22" width="9" height="20" fill="#6b4a2a" {...line} strokeWidth={2.5} />
+          <circle className="smoke" cx="70" cy="18" r="4" fill="#d9d2c2" />
+          <circle className="smoke late" cx="70" cy="18" r="3" fill="#d9d2c2" />
           <rect x="20" y="58" width="14" height="14" fill="#ffb347" {...line} />
           <path d="M86 56 H98" {...line} />
           <rect x="92" y="58" width="8" height="12" fill="#e0b45a" {...line} strokeWidth={2} />
@@ -41,7 +44,13 @@ function Sketch({ href }: { href: string }) {
           <path d="M24 40 V26 H34 V34 H44 V26 H56 V34 H66 V26 H76 V40 Z" fill="#8f8678" {...line} />
           <path d="M44 90 V68 a6 6 0 0 1 12 0 V90 Z" fill="#2a1810" {...line} />
           <path d="M50 26 V6" {...line} />
-          <path d="M50 6 L68 12 L50 18 Z" fill="#e0b45a" {...line} strokeWidth={2.5} />
+          <path
+            className="pennant"
+            d="M50 6 L68 12 L50 18 Z"
+            fill="#e0b45a"
+            {...line}
+            strokeWidth={2.5}
+          />
         </svg>
       )
     case '/dungeon':
@@ -75,7 +84,13 @@ function Sketch({ href }: { href: string }) {
           />
           <path d="M42 88 V68 a8 8 0 0 1 16 0 V88 Z" fill="#6b4a2a" {...line} />
           <path d="M50 24 V8" {...line} />
-          <path d="M50 8 L66 13 L50 18 Z" fill="#a83a32" {...line} strokeWidth={2.5} />
+          <path
+            className="pennant"
+            d="M50 8 L66 13 L50 18 Z"
+            fill="#a83a32"
+            {...line}
+            strokeWidth={2.5}
+          />
         </svg>
       )
     case '/market':
@@ -98,7 +113,13 @@ function Sketch({ href }: { href: string }) {
           </g>
           <path d="M6 82 H94 V92 H6 Z" fill="#8f8678" {...line} />
           <path d="M50 18 V6" {...line} />
-          <path d="M50 6 L66 10 L50 15 Z" fill="#a83a32" {...line} strokeWidth={2.5} />
+          <path
+            className="pennant"
+            d="M50 6 L66 10 L50 15 Z"
+            fill="#a83a32"
+            {...line}
+            strokeWidth={2.5}
+          />
         </svg>
       )
   }
@@ -140,12 +161,12 @@ export function KingdomMap() {
             strokeWidth={3.5}
           />
           <g fill="none" stroke="#6b8896" strokeWidth={2.4} strokeLinecap="round">
-            <path d="M150 560 q14 -10 28 0 t28 0 t28 0" />
-            <path d="M180 600 q14 -10 28 0 t28 0 t28 0" />
-            <path d="M1110 520 q14 -10 28 0 t28 0" />
-            <path d="M1080 580 q14 -10 28 0 t28 0" />
-            <path d="M600 700 q14 -10 28 0 t28 0 t28 0" />
-            <path d="M900 690 q14 -10 28 0 t28 0 t28 0" />
+            <path className="wave" d="M150 560 q14 -10 28 0 t28 0 t28 0" />
+            <path className="wave" d="M180 600 q14 -10 28 0 t28 0 t28 0" />
+            <path className="wave" d="M1110 520 q14 -10 28 0 t28 0" />
+            <path className="wave" d="M1080 580 q14 -10 28 0 t28 0" />
+            <path className="wave" d="M600 700 q14 -10 28 0 t28 0 t28 0" />
+            <path className="wave" d="M900 690 q14 -10 28 0 t28 0 t28 0" />
           </g>
           <path
             d="M900 300 C860 380 800 420 760 470 C720 520 680 600 640 648"
@@ -190,6 +211,10 @@ export function KingdomMap() {
             <circle r={34} />
             <path d="M0 -34 L8 0 L0 34 L-8 0 Z" fill="#a83a32" />
             <path d="M-34 0 L0 -8 L34 0 L0 8 Z" fill="#8a6d3b" />
+          </g>
+          <g className="bird" fill="none" stroke="#2b1d10" strokeWidth={2.5} strokeLinecap="round">
+            <path d="M0 0 q7 -7 14 0 q7 -7 14 0" />
+            <path d="M34 12 q5 -5 10 0 q5 -5 10 0" />
           </g>
           <path d="M410 78 H870 L850 118 H430 Z" fill="#a83a32" stroke="#2b1d10" strokeWidth={3} />
           <text

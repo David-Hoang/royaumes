@@ -935,3 +935,25 @@ button.fig[data-glow='true'] svg { animation: none; }
     @keyframes twinkle { from { opacity: 0.35; } to { opacity: 1; } }
     .window-light { animation: twinkle 4s ease-in-out infinite alternate; }
 }
+
+/* Carte : de petits mouvements discrets (vagues, fanions, fumée, oiseaux). */
+@media (prefers-reduced-motion: no-preference) {
+    .wave { animation: wave-drift 4s ease-in-out infinite alternate; }
+    .wave:nth-child(2n) { animation-duration: 5s; animation-delay: -2s; }
+    .wave:nth-child(3n) { animation-duration: 6s; animation-delay: -1s; }
+    @keyframes wave-drift { from { transform: translateX(-6px); } to { transform: translateX(6px); } }
+    .pennant { transform-box: fill-box; transform-origin: 0 50%; animation: pennant-wave 1.4s ease-in-out infinite alternate; }
+    @keyframes pennant-wave { from { transform: skewY(-8deg) scaleX(1); } to { transform: skewY(8deg) scaleX(0.88); } }
+    .smoke { animation: smoke-rise 3.5s ease-out infinite; opacity: 0; }
+    .smoke.late { animation-delay: -1.7s; }
+    @keyframes smoke-rise {
+        0% { transform: translate(0, 0) scale(0.6); opacity: 0.8; }
+        100% { transform: translate(6px, -16px) scale(1.6); opacity: 0; }
+    }
+    .bird { animation: bird-fly 34s linear infinite; }
+    @keyframes bird-fly {
+        from { transform: translate(-80px, 220px); }
+        50% { transform: translate(640px, 190px); }
+        to { transform: translate(1340px, 230px); }
+    }
+}
