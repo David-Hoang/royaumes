@@ -53,7 +53,7 @@ main {
     z-index: 1;
     max-width: 1180px;
     margin: 0 auto;
-    padding: 24px 24px 56px;
+    padding: 16px 24px 32px;
 }
 h1, h2 {
     font-family: var(--font-display);
@@ -306,7 +306,7 @@ input:focus-visible {
     flex-wrap: wrap;
     align-items: center;
     gap: 8px 24px;
-    margin: 0 5px 30px;
+    margin: 0 5px 18px;
     padding: 10px 22px;
     background: linear-gradient(#2a231c, #1b1611);
     box-shadow:
@@ -380,7 +380,9 @@ input:focus-visible {
 .map {
     position: relative;
     aspect-ratio: 1280 / 800;
-    margin: 0 5px;
+    /* La carte tient dans la hauteur de la fenêtre : barre du haut, marges et phrase du narrateur retirées. */
+    width: min(calc(100% - 10px), calc((100dvh - 215px) * 1.6));
+    margin: 0 auto;
     background: repeating-linear-gradient(90deg, #2e2218 0 138px, #241a12 138px 141px), #2a1f16;
     box-shadow: 0 0 0 1px var(--ink-dark), 0 0 0 3px var(--iron-light), 0 0 0 5px var(--ink-dark), 0 12px 28px rgba(0, 0, 0, 0.5);
 }
@@ -420,16 +422,20 @@ input:focus-visible {
     color: var(--wax);
 }
 .say {
-    margin: 22px 5px 0;
+    margin: 14px 5px 0;
     font-style: italic;
     font-size: 1.2rem;
 }
 
 /* Scènes illustrées : un paysage dessiné, avec des éléments sur lesquels on clique. */
 .scene {
+    --ratio: 1.684;
+    --chrome: 270px;
     position: relative;
     aspect-ratio: 1280 / 760;
-    margin: 0 5px;
+    /* Une scène tient dans la hauteur de la fenêtre : on retire ce qui l'entoure (--chrome). */
+    width: min(calc(100% - 10px), calc((100dvh - var(--chrome)) * var(--ratio)));
+    margin: 0 auto;
     overflow: hidden;
     background: #2b2540;
     box-shadow: 0 0 0 1px var(--ink-dark), 0 0 0 3px var(--iron-light), 0 0 0 5px var(--ink-dark), 0 12px 28px rgba(0, 0, 0, 0.5);
@@ -675,7 +681,9 @@ input.amount { width: 5em; }
 /* Donjon : héros à gauche, monstres à droite, porte au centre. */
 .dungeon-scene {
     aspect-ratio: 1280 / 640;
-    min-height: 420px;
+    --ratio: 2;
+    --chrome: 345px;
+    min-height: 260px;
     background: #17120e;
 }
 .chips-right {
@@ -807,7 +815,7 @@ button.fig[data-glow='true'] svg { animation: none; }
 .seal-bubble progress { width: 100%; height: 8px; accent-color: var(--wax); }
 
 /* Taverne : la salle avec ses clients, puis les messages en bulles. */
-.tavern-scene { aspect-ratio: 1280 / 640; min-height: 300px; background: #17120e; }
+.tavern-scene { aspect-ratio: 1280 / 640; min-height: 300px; background: #17120e; --ratio: 100; }
 .patrons { position: absolute; inset: 0; z-index: 1; margin: 0; padding: 0; list-style: none; }
 /* Le bas du personnage (ses pieds) est posé sur le point du sol indiqué par left / top. */
 .patrons li {
