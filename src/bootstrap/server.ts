@@ -68,3 +68,20 @@ export async function currentUser(headers: Headers): Promise<AuthUser | null> {
   await ready
   return auth.getUser(headers)
 }
+
+/**
+ * Indique si le joueur connecté a déjà fondé son village. La page interroge l'API du Village
+ * comme le ferait le navigateur, avec les en-têtes (et donc la session) de la requête reçue.
+ */
+export async function hasVillage(headers: Headers): Promise<boolean> {
+  const { api, ready } = getServer()
+  await ready
+  const res = await api.fetch(
+    new Request('http://localhost/api/realm/village', {
+      headers: { cookie: headers.get('cookie') ?? '' },
+    }),
+  )
+  if (!res.ok) return true
+  const body = (await res.json()) as { view: unknown }
+  return body.view !== null
+}

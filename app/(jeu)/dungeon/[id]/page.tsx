@@ -1,4 +1,5 @@
 import { headers } from 'next/headers'
+import { requireVillage } from '@/bootstrap/require-village'
 import { currentUser } from '@/bootstrap/server'
 import { DungeonGame } from '@/modules/dungeon/ui'
 
@@ -7,6 +8,7 @@ import { DungeonGame } from '@/modules/dungeon/ui'
  * il suffit de la communiquer à d'autres joueurs pour qu'ils la rejoignent.
  */
 export default async function GamePage({ params }: { params: Promise<{ id: string }> }) {
+  await requireVillage()
   const { id } = await params
   const user = await currentUser(await headers())
   return <DungeonGame gameId={id} userId={user?.id ?? ''} />
