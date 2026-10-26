@@ -911,3 +911,6 @@ button.fig[data-glow='true'] svg { animation: none; }
 .title-screen h1 { margin: 8px 0 0; font-size: clamp(2.4rem, 8vw, 3.6rem); letter-spacing: 0.12em; }
 .title-screen p { margin: 4px 0 0; }
 .login-panel { max-width: 420px; margin-left: auto; margin-right: auto; }
+
+/* Icônes des entités : de petits dessins colorés qui suivent la taille du texte. */
+.icon { width: 1.35em; height: 1.35em; flex: none; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55)); }

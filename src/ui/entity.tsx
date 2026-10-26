@@ -1,3 +1,4 @@
+import { ICONS } from './icons'
 import { look } from './theme'
 
 /**
@@ -16,7 +17,14 @@ export function Entity({
   const { glyph, label } = look(kind)
   return (
     <span className="entity" title={label}>
-      {!hideGlyph && <span aria-hidden="true">{glyph}</span>}
+      {!hideGlyph &&
+        (ICONS[kind] ? (
+          <svg className="icon" viewBox="0 0 48 48" aria-hidden="true">
+            {ICONS[kind]}
+          </svg>
+        ) : (
+          <span aria-hidden="true">{glyph}</span>
+        ))}
       {showLabel ? <span>{label}</span> : <span className="sr-only">{label}</span>}
     </span>
   )
