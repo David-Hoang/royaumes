@@ -1,6 +1,6 @@
 'use client'
 import { hc } from 'hono/client'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useChannel } from '@/platform/realtime/use-channel'
 import { Entity } from '@/ui/entity'
 import type { RealmApi } from './api'
@@ -77,6 +77,14 @@ function BuildingArt({ building }: { building: Building }) {
             <circle cx="160" cy="170" r="12" fill="#d4a56a" />
           </g>
           <circle cx="42" cy="168" r="26" fill="#b9b0a0" {...line} strokeWidth={3} />
+          <g className="saw-wheel">
+            <path
+              d="M42 146 V190 M20 168 H64 M26 152 L58 184 M58 152 L26 184"
+              stroke="#5a5249"
+              strokeWidth={4}
+              strokeLinecap="round"
+            />
+          </g>
           <circle cx="42" cy="168" r="7" fill="#5a5249" stroke="#1a120c" strokeWidth={2} />
         </svg>
       )
@@ -90,6 +98,8 @@ function BuildingArt({ building }: { building: Building }) {
             <rect x="22" y="176" width="44" height="22" />
             <rect x="150" y="178" width="40" height="20" />
           </g>
+          <circle className="dust" cx="60" cy="176" r="7" fill="#d9d2c2" />
+          <circle className="dust late" cx="150" cy="176" r="6" fill="#d9d2c2" />
           <path d="M170 120 L196 186" stroke="#1a120c" strokeWidth={6} strokeLinecap="round" />
           <path
             d="M158 128 C176 110 196 112 206 124"
@@ -116,6 +126,13 @@ function BuildingArt({ building }: { building: Building }) {
             <rect x="52" y="110" width="116" height="12" />
           </g>
           <path d="M86 200 L96 176 H130 L138 200" fill="#5a5249" {...line} strokeWidth={3} />
+          <path
+            className="flame"
+            d="M170 128 c10 -12 10 -18 4 -28 c14 8 16 22 -4 28z"
+            fill="#ff9a3c"
+            stroke="#1a120c"
+            strokeWidth={2}
+          />
           <circle cx="104" cy="170" r="7" fill="#e0b45a" stroke="#1a120c" strokeWidth={2} />
           <circle cx="120" cy="168" r="6" fill="#f2cf7e" stroke="#1a120c" strokeWidth={2} />
         </svg>
@@ -167,6 +184,26 @@ function VillageSky() {
         stroke="#1a120c"
         strokeWidth={3}
       />
+      {[
+        [150, 560],
+        [330, 600],
+        [470, 540],
+        [700, 580],
+        [860, 620],
+        [1010, 560],
+        [1150, 610],
+        [260, 650],
+      ].map(([x, y], i) => (
+        <circle
+          key={`${x}-${y}`}
+          className="firefly"
+          cx={x}
+          cy={y}
+          r="3.5"
+          fill="#ffe9a8"
+          style={{ animationDelay: `${-i * 0.9}s` }}
+        />
+      ))}
       <path
         d="M120 760 C300 670 420 630 600 610 C760 594 900 610 1100 670"
         fill="none"
@@ -187,6 +224,10 @@ export function VillageScreen({ userId }: { userId: string }) {
   const [error, setError] = useState<string | null>(null)
   // Bâtiment dont la fiche est ouverte.
   const [selected, setSelected] = useState<Building | null>(null)
+  // Bâtiment qui vient d'être construit ou amélioré : il fait un petit bond.
+  const [celebrated, setCelebrated] = useState<Building | null>(null)
+  const celebration = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  useEffect(() => () => clearTimeout(celebration.current), [])
 
   // La touche Échap ferme la fiche d'un bâtiment.
   useEffect(() => {
@@ -225,7 +266,13 @@ export function VillageScreen({ userId }: { userId: string }) {
   }
   async function upgrade(building: Building) {
     const res = await client.village.upgrade.$post({ json: { building } })
-    handle(await res.json())
+    const body = await res.json()
+    handle(body)
+    if ('view' in body) {
+      setCelebrated(building)
+      clearTimeout(celebration.current)
+      celebration.current = setTimeout(() => setCelebrated(null), 1200)
+    }
   }
   function handle(body: { view: VillageView } | { error: ApiError }) {
     if ('error' in body) {
@@ -290,10 +337,13 @@ export function VillageScreen({ userId }: { userId: string }) {
         <div className="cloud" style={{ top: '14%' }} aria-hidden="true" />
         <div className="cloud slow" style={{ top: '26%' }} aria-hidden="true" />
 
-        <ul className="chips" aria-label="Ressources">
+        <ul className="resources" aria-label="Ressources">
           {RESOURCES.map((r) => (
-            <li key={r} className="chip">
-              <Entity kind={r} /> {Math.floor(stock[r])}
+            <li key={r} className="resource">
+              <span className="resource-icon">
+                <Entity kind={r} />
+              </span>
+              <span className="resource-amount">{Math.floor(stock[r])}</span>
               <small>+{view.ratesPerMinute[r]} / min</small>
             </li>
           ))}
@@ -305,11 +355,15 @@ export function VillageScreen({ userId }: { userId: string }) {
             type="button"
             className="spot"
             data-built={view.levels[b] > 0}
+            data-tier={view.levels[b] >= 10 ? 'max' : view.levels[b] >= 5 ? 'high' : undefined}
+            data-selected={selected === b}
+            data-celebrated={celebrated === b || undefined}
             style={{ left: `${SPOTS[b]}%` }}
-            onClick={() => setSelected(b)}
+            onClick={() => setSelected(selected === b ? null : b)}
           >
             <span className="spot-flag">
-              <Entity kind={b} showLabel hideGlyph /> {roman(view.levels[b])}
+              <Entity kind={b} showLabel hideGlyph />
+              <span className="spot-level">{roman(view.levels[b])}</span>
             </span>
             <span
               className="spot-art"
@@ -317,20 +371,25 @@ export function VillageScreen({ userId }: { userId: string }) {
             >
               <BuildingArt building={b} />
             </span>
+            {celebrated === b && (
+              <span className="spot-burst">Niveau {roman(view.levels[b])} !</span>
+            )}
           </button>
         ))}
+      </section>
 
-        {open && (
-          <div className="modal-back">
-            <dialog open className="scroll modal" aria-label="Fiche du bâtiment">
-              <button
-                type="button"
-                className="modal-close"
-                aria-label="Fermer"
-                onClick={() => setSelected(null)}
-              >
-                &times;
-              </button>
+      <div className="dock">
+        {open ? (
+          <section className="scroll build-card" aria-label="Fiche du bâtiment">
+            <button
+              type="button"
+              className="modal-close"
+              aria-label="Fermer"
+              onClick={() => setSelected(null)}
+            >
+              &times;
+            </button>
+            <div className="build-title">
               <h2>
                 <Entity kind={open.building} showLabel />
               </h2>
@@ -339,16 +398,18 @@ export function VillageScreen({ userId }: { userId: string }) {
                   <span key={n} className="pip" data-on={n <= open.level} />
                 ))}
               </div>
-              <p>
+              <p className="muted-ink">
                 {open.level === 0 ? (
-                  'Ce bâtiment n’est pas encore construit.'
+                  'Pas encore construit.'
                 ) : (
                   <>
-                    Niveau <strong>{roman(open.level)}</strong>.
+                    Niveau <strong>{roman(open.level)}</strong>
                   </>
-                )}{' '}
-                {open.cost ? 'Coût :' : 'Niveau maximum atteint.'}
+                )}
               </p>
+            </div>
+            <div className="build-cost">
+              <span className="muted-ink">{open.cost ? 'Coût' : 'Niveau maximum atteint'}</span>
               {open.cost && (
                 <p className="row">
                   {Object.entries(open.cost).map(([r, n]) => (
@@ -358,28 +419,29 @@ export function VillageScreen({ userId }: { userId: string }) {
                   ))}
                 </p>
               )}
-              <button
-                type="button"
-                disabled={!canAfford(stock, open.cost)}
-                onClick={() => upgrade(open.building)}
-              >
-                {open.lacking ? (
-                  <>
-                    Il manque {open.lacking.missing} <Entity kind={open.lacking.resource} />
-                  </>
-                ) : open.level === 0 ? (
-                  'Construire'
-                ) : (
-                  'Améliorer'
-                )}
-              </button>
-              {error && <p className="error">{error}</p>}
-            </dialog>
-          </div>
+            </div>
+            <button
+              type="button"
+              disabled={!canAfford(stock, open.cost)}
+              onClick={() => upgrade(open.building)}
+            >
+              {open.lacking ? (
+                <>
+                  Il manque {open.lacking.missing} <Entity kind={open.lacking.resource} />
+                </>
+              ) : open.level === 0 ? (
+                'Construire'
+              ) : (
+                'Améliorer'
+              )}
+            </button>
+            {error && <p className="error build-error">{error}</p>}
+          </section>
+        ) : (
+          <p className="scroll say">Touchez un bâtiment pour voir ce que vous pouvez en faire.</p>
         )}
-      </section>
+      </div>
       {!open && error && <p className="error">{error}</p>}
-      <p className="scroll say">Touchez un bâtiment pour voir ce que vous pouvez en faire.</p>
     </>
   )
 }

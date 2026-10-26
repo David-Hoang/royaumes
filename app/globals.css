@@ -355,7 +355,7 @@ input:focus-visible {
 /* Scènes illustrées : un paysage dessiné, avec des éléments sur lesquels on clique. */
 .scene {
     --ratio: 1.684;
-    --chrome: 270px;
+    --chrome: 335px;
     position: relative;
     aspect-ratio: 1280 / 760;
     /* Une scène tient dans la hauteur de la fenêtre : on retire ce qui l'entoure (--chrome). */
@@ -428,7 +428,8 @@ button.spot {
     position: absolute;
     bottom: 17%;
     width: 21%;
-    transform: translateX(-50%);
+    /* Centré par une marge et non par une transformation : l'état :active des boutons déplacerait le bâtiment. */
+    margin-left: -10.5%;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -458,11 +459,16 @@ button.spot:focus-visible {
     filter: brightness(1.15) drop-shadow(0 8px 6px rgba(0, 0, 0, 0.5));
 }
 .spot-flag {
-    margin-bottom: 6px;
-    padding: 2px 14px;
-    background: linear-gradient(#a83a32, var(--wax));
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding: 3px 12px;
+    background: linear-gradient(#8a5a33, #5a3a1c);
     border: 3px solid var(--ink-dark);
-    color: var(--accent-light);
+    box-shadow: 0 0 0 2px var(--iron-light), 0 4px 6px rgba(0, 0, 0, 0.5);
+    color: #f6ecd6;
     font-family: var(--font-display);
     font-size: clamp(0.8rem, 1.6vw, 1.25rem);
     letter-spacing: 0.04em;
@@ -878,3 +884,80 @@ button.fig:hover svg { filter: drop-shadow(0 0 8px var(--accent-light)); }
 .stall:hover { transform: translateY(-2px); }
 .stall { transition: transform 0.15s; }
 @media (prefers-reduced-motion: reduce) { .seal:hover .seal-wax, .stall:hover, .spot:hover .spot-art { transform: none; } }
+
+/* Village : panneaux de bois, bâtiments vivants et fiche de construction sous le paysage. */
+button.spot:active { transform: none; }
+button.spot:hover:not(:disabled) { filter: none; }
+.spot-flag::before, .spot-flag::after {
+    content: ''; position: absolute; top: 100%; width: 3px; height: 10px; background: var(--iron-light);
+}
+.spot-flag::before { left: 22%; }
+.spot-flag::after { right: 22%; }
+.spot-level {
+    display: grid; place-items: center; min-width: 1.7em; height: 1.7em; padding: 0 4px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #c4584c, var(--wax) 65%); border: 2px solid var(--ink-dark);
+    color: var(--accent-light); font-size: 0.85em; box-shadow: 0 2px 3px rgba(0, 0, 0, 0.5);
+}
+.spot[data-selected='true'] .spot-flag { box-shadow: 0 0 0 2px var(--accent), 0 0 14px var(--accent); }
+.spot[data-selected='true'] .spot-art { filter: brightness(1.12) drop-shadow(0 0 12px rgba(242, 207, 126, 0.7)); }
+.spot[data-tier='high'] .spot-art { filter: drop-shadow(0 0 8px rgba(224, 180, 90, 0.5)) drop-shadow(0 6px 4px rgba(0, 0, 0, 0.45)); }
+.spot[data-tier='max'] .spot-art { filter: drop-shadow(0 0 16px rgba(255, 215, 120, 0.9)) drop-shadow(0 6px 4px rgba(0, 0, 0, 0.45)); }
+.spot-burst {
+    position: absolute; top: 20%; left: 50%; z-index: 3; transform: translateX(-50%); white-space: nowrap;
+    font-family: var(--font-display); font-size: clamp(1rem, 2.4vw, 1.8rem); color: var(--accent-light);
+    text-shadow: 0 2px 4px #000, 0 0 10px var(--accent); pointer-events: none;
+}
+.saw-wheel { transform-box: fill-box; transform-origin: 50% 50%; }
+.dock { min-height: 128px; }
+.build-card {
+    position: relative; display: grid; grid-template-columns: 1.2fr 1fr auto; align-items: center; gap: 12px 24px;
+    margin: 14px 5px 0; padding: 14px 40px 14px 20px;
+}
+.build-card h2 { margin: 0; color: #7a3a1d; font-size: 1.7rem; }
+.build-card .pips { margin: 4px 0; }
+.build-card p { margin: 0; }
+.muted-ink { color: #5a4430; font-size: 0.9rem; }
+.build-cost { display: grid; gap: 4px; }
+.build-cost .cost { color: var(--parch-ink); font-weight: 700; font-size: 1.2rem; }
+.build-cost .cost[data-short='true'] { color: #a3281e; }
+.build-error { grid-column: 1 / -1; }
+@media (max-width: 760px) { .build-card { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: no-preference) {
+    .saw-wheel { animation: spin 3s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .dust { animation: dust-puff 2.6s ease-out infinite; opacity: 0; }
+    .dust.late { animation-delay: -1.3s; }
+    @keyframes dust-puff {
+        0% { transform: translate(0, 0) scale(0.5); opacity: 0.7; }
+        100% { transform: translate(-14px, -22px) scale(1.7); opacity: 0; }
+    }
+    .firefly { animation: firefly-float 5s ease-in-out infinite alternate; }
+    @keyframes firefly-float {
+        0% { transform: translate(0, 0); opacity: 0.2; }
+        50% { opacity: 1; }
+        100% { transform: translate(24px, -30px); opacity: 0.3; }
+    }
+    .spot[data-celebrated] .spot-art { animation: build-pop 0.9s ease-out; }
+    .spot-burst { animation: burst-up 1.2s ease-out forwards; }
+    @keyframes build-pop { 0% { translate: 0 0; } 30% { translate: 0 -14px; } 60% { translate: 0 0; } 80% { translate: 0 -5px; } 100% { translate: 0 0; } }
+    @keyframes burst-up { from { transform: translate(-50%, 10px); opacity: 0; } 20% { opacity: 1; } to { transform: translate(-50%, -40px); opacity: 0; } }
+}
+
+/* Village : les ressources, sur une planche de bois cerclée de fer. */
+.resources {
+    position: absolute; left: 2%; top: 3%; z-index: 2; display: flex; margin: 0; padding: 0; list-style: none;
+    background: linear-gradient(#6b4524, #4a2f18); border: 3px solid var(--ink-dark);
+    box-shadow: 0 0 0 2px var(--iron-light), 0 6px 10px rgba(0, 0, 0, 0.55), inset 0 2px 0 rgba(255, 255, 255, 0.15);
+}
+.resource {
+    display: grid; grid-template-columns: auto auto; grid-template-areas: 'icon amount' 'icon rate'; align-items: center;
+    column-gap: 10px; padding: 6px 16px 6px 12px; border-left: 3px solid var(--ink-dark);
+}
+.resource:first-child { border-left: 0; }
+.resource-icon { grid-area: icon; font-size: clamp(1.4rem, 2.6vw, 2.2rem); filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.6)); }
+.resource-amount {
+    grid-area: amount; font-family: var(--font-display); font-size: clamp(1.1rem, 2.2vw, 1.7rem); line-height: 1;
+    color: var(--accent-light); text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6); font-variant-numeric: tabular-nums;
+}
+.resource small { grid-area: rate; font-size: clamp(0.65rem, 1.2vw, 0.85rem); color: #bfe3a8; }
+@media (max-width: 560px) { .resource { grid-template-areas: 'icon' 'amount' 'rate'; grid-template-columns: auto; justify-items: center; padding: 4px 10px; } }
