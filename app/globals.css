@@ -355,7 +355,7 @@ input:focus-visible {
 /* Scènes illustrées : un paysage dessiné, avec des éléments sur lesquels on clique. */
 .scene {
     --ratio: 1.684;
-    --chrome: 335px;
+    --chrome: 355px;
     position: relative;
     aspect-ratio: 1280 / 760;
     /* Une scène tient dans la hauteur de la fenêtre : on retire ce qui l'entoure (--chrome). */
@@ -583,7 +583,7 @@ input.amount { width: 5em; }
 .dungeon-scene {
     aspect-ratio: 1280 / 640;
     --ratio: 2;
-    --chrome: 345px;
+    --chrome: 365px;
     min-height: 260px;
     background: #17120e;
 }
@@ -961,3 +961,47 @@ button.spot:hover:not(:disabled) { filter: none; }
 }
 .resource small { grid-area: rate; font-size: clamp(0.65rem, 1.2vw, 0.85rem); color: #bfe3a8; }
 @media (max-width: 560px) { .resource { grid-template-areas: 'icon' 'amount' 'rate'; grid-template-columns: auto; justify-items: center; padding: 4px 10px; } }
+
+/* Titre de page : toutes les pages du jeu commencent par la même plaque de fer que la barre du haut. */
+main h1:not(.row > h1):not(.title-screen h1), main .row:has(> h1) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 16px;
+    margin: 0 5px 18px;
+    padding: 8px 20px;
+    background: linear-gradient(#2a231c, #1b1611);
+    box-shadow:
+        0 0 0 1px var(--ink-dark),
+        0 0 0 3px var(--iron-light),
+        0 0 0 5px var(--ink-dark),
+        0 10px 18px rgba(0, 0, 0, 0.4);
+}
+main .row > h1 { margin: 0; }
+main h1:not(.title-screen h1) { font-size: 1.9rem; }
+main h1:not(.title-screen h1) .entity { font-size: 1.1em; }
+
+/* Listes déroulantes : même apparence que les champs de saisie. */
+select {
+    font: inherit;
+    padding: 9px 36px 9px 12px;
+    border-radius: 2px;
+    border: 2px solid var(--iron-light);
+    background: #17120e url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23e0b45a' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 12px center;
+    color: inherit;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+    appearance: none;
+    cursor: pointer;
+}
+select:hover { border-color: var(--accent-dark); }
+select:focus-visible { border-color: var(--accent); }
+option { background: #17120e; color: var(--ink); }
+label { color: var(--muted); }
+progress { accent-color: var(--accent); }
+
+/* Sceaux : les symboles des hauts faits sont des emojis ; teintés or, ils prennent l'allure d'un cachet gravé. */
+.seal-wax .entity > span[aria-hidden='true'] {
+    filter: grayscale(1) sepia(1) saturate(2.6) hue-rotate(-12deg) brightness(1.15) contrast(1.05) drop-shadow(0 1px 0 rgba(0, 0, 0, 0.7));
+}
+.seal[data-unlocked='false'] .seal-wax .entity > span[aria-hidden='true'] { filter: grayscale(1) brightness(0.8) drop-shadow(0 1px 0 rgba(0, 0, 0, 0.7)); }
