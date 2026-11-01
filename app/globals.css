@@ -1008,3 +1008,7 @@ progress { accent-color: var(--accent); }
 
 /* La barre de défilement garde sa place : qu'elle apparaisse ou non, la scène ne change pas de largeur (et ne « saute » pas). */
 html { scrollbar-gutter: stable; overflow-anchor: none; }
+
+/* Salon du Donjon : les places libres sont des silhouettes pointillées sur lesquelles on clique. */
+.slot .fig-name { color: #d9ceb4; }
+.slot button.fig:hover svg { filter: drop-shadow(0 0 10px var(--accent-light)); }

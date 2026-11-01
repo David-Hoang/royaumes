@@ -20,7 +20,7 @@ import {
   type Monster,
   type OpenGame,
 } from './contracts'
-import { DoorArt, DungeonWall, Knight, MonsterArt } from './scene-art'
+import { DoorArt, DungeonWall, Knight, MonsterArt, SlotArt } from './scene-art'
 
 /** Client HTTP typé, déduit de la sous-application Hono du module. */
 const client = hc<DungeonApi>('/api/dungeon')
@@ -69,6 +69,9 @@ interface Floater {
   text: string
   kind: 'damage' | 'heal'
 }
+
+/** Clés des places libres du salon (une par place possible). */
+const SLOT_KEYS = ['slot-a', 'slot-b', 'slot-c', 'slot-d']
 
 /** Libellé affiché pour chaque état de la connexion temps réel. */
 const STATUS_LABELS = {
@@ -326,6 +329,13 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
 
   // La phrase du narrateur, sous la scène : ce qu'il est possible de faire maintenant.
   let narration = "Les héros se rassemblent à l'entrée du donjon."
+  if (view.phase === 'lobby') {
+    narration = view.isHost
+      ? "Invitez des joueurs avec l'adresse de cette page, comblez les places libres avec des compagnons, puis franchissez la porte."
+      : view.isMember
+        ? "Vous êtes dans l'expédition. L'hôte donnera le signal pour franchir la porte."
+        : "Cliquez sur une place libre pour rejoindre l'expédition."
+  }
   if (view.phase === 'exploring') {
     narration =
       view.turnHeroId === userId
@@ -418,6 +428,26 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
               </div>
             )
           })}
+          {view.phase === 'lobby' &&
+            SLOT_KEYS.slice(0, MAX_HEROES - view.heroes.length).map((key, index) => {
+              // Le premier visiteur rejoint l'expédition ; l'hôte comble les places avec des compagnons.
+              const action =
+                !view.isMember && index === 0 ? join : view.isHost ? addCompanion : undefined
+              const text =
+                !view.isMember && index === 0
+                  ? 'Rejoindre'
+                  : view.isHost
+                    ? 'Ajouter un compagnon'
+                    : 'Place libre'
+              return (
+                <div key={key} className="fig-wrap slot">
+                  <Fig onClick={action} glow={!!action} label={text}>
+                    <SlotArt plus={!!action} />
+                  </Fig>
+                  <span className="fig-name">{text}</span>
+                </div>
+              )
+            })}
         </div>
 
         {inCombat && (
@@ -455,15 +485,28 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
           </div>
         )}
 
-        {view.phase === 'exploring' && (
+        {(view.phase === 'exploring' || view.phase === 'lobby') && (
           <div className="scene-door">
             <Fig
-              onClick={view.turnHeroId === userId ? openDoor : undefined}
-              glow={view.turnHeroId === userId}
-              label="Ouvrir la porte suivante"
+              onClick={
+                view.phase === 'lobby'
+                  ? view.isHost
+                    ? start
+                    : undefined
+                  : view.turnHeroId === userId
+                    ? openDoor
+                    : undefined
+              }
+              glow={view.phase === 'lobby' ? view.isHost : view.turnHeroId === userId}
+              label={view.phase === 'lobby' ? 'Entrer dans le donjon' : 'Ouvrir la porte suivante'}
             >
               <DoorArt />
             </Fig>
+            {view.phase === 'lobby' && (
+              <span className="fig-tags">
+                {view.isHost ? 'Entrer dans le donjon' : 'Porte du donjon'}
+              </span>
+            )}
             {view.currentRoom?.kind === 'treasure' && (
               <span className="fig-tags">Un trésor de {view.currentRoom.gold} or</span>
             )}
@@ -510,33 +553,6 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
         </div>
       )}
       {error && <p className="error">{error}</p>}
-
-      {/* Salon : rejoindre ou lancer l'expédition. */}
-      {view.phase === 'lobby' && (
-        <div className="panel">
-          <p className="muted">
-            Communiquez l'adresse de cette page aux joueurs que vous souhaitez inviter.
-          </p>
-          {!view.isMember && view.heroes.length < MAX_HEROES && (
-            <button type="button" onClick={join}>
-              Rejoindre l'expédition
-            </button>
-          )}
-          {view.isHost && view.heroes.length < MAX_HEROES && (
-            <button type="button" onClick={addCompanion}>
-              <Entity kind="companion" /> Ajouter un compagnon
-            </button>
-          )}
-          {view.isHost && (
-            <button type="button" onClick={start}>
-              Entrer dans le donjon
-            </button>
-          )}
-          {view.isMember && !view.isHost && (
-            <p className="muted">En attente du lancement par l'hôte.</p>
-          )}
-        </div>
-      )}
 
       {/* Résultat de la dernière manche, connu de tous une fois la manche résolue. */}
       {view.lastRound && (

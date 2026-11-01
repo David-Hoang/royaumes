@@ -199,3 +199,29 @@ export function DungeonWall() {
     </svg>
   )
 }
+
+/** Une place libre dans le salon : la silhouette pointillée d'un héros, avec un « + » s'il est possible de la prendre. */
+export function SlotArt({ plus }: { plus: boolean }) {
+  return (
+    <svg viewBox="-10 0 150 226" aria-hidden="true">
+      <g
+        fill="rgba(241,230,211,0.08)"
+        stroke="#f1e6d3"
+        strokeWidth={4}
+        strokeDasharray="8 8"
+        strokeLinejoin="round"
+        opacity={0.7}
+      >
+        <path d="M40 78 C40 30 100 30 100 78 V96 H40 Z" />
+        <path d="M34 98 H106 L112 190 H28 Z" />
+        <path d="M28 190 V224 M110 190 V224" />
+      </g>
+      {plus && (
+        <g>
+          <circle cx="70" cy="124" r="26" fill="#e0b45a" stroke={INK} strokeWidth={4} />
+          <path d="M70 110 V138 M56 124 H84" stroke={INK} strokeWidth={7} strokeLinecap="round" />
+        </g>
+      )}
+    </svg>
+  )
+}
