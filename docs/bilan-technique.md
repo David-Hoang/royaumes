@@ -16,7 +16,7 @@ revues. Il s'adresse à la personne qui reprendrait le projet.
 | Briques de la plateforme | 9 : `auth`, `cron`, `db`, `event-store`, `http`, `outbox`, `privacy`, `projection`, `realtime` |
 | Lignes de code, hors tests | 11 116 dans `src/` (9 168 avant la refonte de l'interface, 7 906 à `td11-fin`) |
 | Fichiers de test, nombre de tests | 39 fichiers, 279 tests (33 fichiers, 232 tests à `td11-fin`) |
-| Commits | 115 (76 à `td11-fin`) |
+| Commits | 138 (76 à `td11-fin`) |
 | Hébergement | Vercel (Francfort), base Neon (Francfort) |
 
 | Module | Stockage | Lignes, hors tests |
