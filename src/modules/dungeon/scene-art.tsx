@@ -120,21 +120,6 @@ export function MonsterArt({ kind }: { kind: MonsterKind }) {
   )
 }
 
-/** La porte de la salle suivante : du bois, des bandes de fer et un anneau. */
-export function DoorArt() {
-  return (
-    <svg viewBox="0 0 160 230" aria-hidden="true">
-      <path d="M10 226 V84 a70 70 0 0 1 140 0 V226 Z" fill="#6b4524" {...line} />
-      <path d="M45 226 V60 M80 226 V16 M115 226 V60" fill="none" stroke="#3f2713" strokeWidth={3} />
-      <g fill="#3a342d" stroke={INK} strokeWidth={3}>
-        <rect x="10" y="100" width="140" height="14" />
-        <rect x="10" y="164" width="140" height="14" />
-      </g>
-      <circle cx="112" cy="140" r="10" fill="none" stroke="#e0b45a" strokeWidth={5} />
-    </svg>
-  )
-}
-
 /** Le décor du donjon : un mur de briques, une arche, des torches et un sol dallé. */
 export function DungeonWall() {
   return (

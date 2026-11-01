@@ -2,7 +2,7 @@
 import { hc } from 'hono/client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
+import { type CSSProperties, type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { useChannel } from '@/platform/realtime/use-channel'
 import { Entity } from '@/ui/entity'
 import { useCountdown } from '@/ui/use-countdown'
@@ -20,7 +20,7 @@ import {
   type Monster,
   type OpenGame,
 } from './contracts'
-import { DoorArt, DungeonWall, Knight, MonsterArt, SlotArt } from './scene-art'
+import { DungeonWall, Knight, MonsterArt, SlotArt } from './scene-art'
 
 /** Client HTTP typé, déduit de la sous-application Hono du module. */
 const client = hc<DungeonApi>('/api/dungeon')
@@ -68,6 +68,19 @@ interface Floater {
   target: string
   text: string
   kind: 'damage' | 'heal'
+}
+
+/**
+ * Position d'un chiffre qui s'envole quand un même combattant en reçoit plusieurs : chacun est
+ * décalé sur le côté et vers le bas, et part un peu plus tard, pour ne pas recouvrir le précédent.
+ */
+function floaterStyle(n: number): CSSProperties {
+  const side = n % 2 === 1 ? 1 : -1
+  return {
+    '--dx': `${n === 0 ? 0 : side * Math.ceil(n / 2) * 34}px`,
+    '--dy': `${n * 26}px`,
+    '--delay': `${n * 0.45}s`,
+  } as CSSProperties
 }
 
 /** Clés des places libres du salon (une par place possible). */
@@ -221,9 +234,19 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
   const addCompanion = async () =>
     handle(await (await client.games[':id'].companion.$post({ param })).json())
   const join = async () => handle(await (await client.games[':id'].join.$post({ param })).json())
-  const start = async () => handle(await (await client.games[':id'].start.$post({ param })).json())
-  const openDoor = async () =>
-    handle(await (await client.games[':id'].door.$post({ param })).json())
+  // Le bouton est bloqué pendant l'envoi de la commande, pour éviter un double clic.
+  const [opening, setOpening] = useState(false)
+  async function sendOnce(command: () => Promise<Response>) {
+    if (opening) return
+    setOpening(true)
+    try {
+      handle(await (await command()).json())
+    } finally {
+      setOpening(false)
+    }
+  }
+  const start = () => sendOnce(() => client.games[':id'].start.$post({ param }))
+  const openDoor = () => sendOnce(() => client.games[':id'].door.$post({ param }))
   async function act(action: Action) {
     if (!view) return
     const res = await client.games[':id'].action.$post({
@@ -267,7 +290,7 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
     )
     // Le minuteur n'est pas annulé par une relecture de la vue : seule une nouvelle manche le remplace.
     clearTimeout(floatTimer.current)
-    floatTimer.current = setTimeout(() => setFloaters([]), 1600)
+    floatTimer.current = setTimeout(() => setFloaters([]), 3200)
   }, [view])
   useEffect(() => () => clearTimeout(floatTimer.current), [])
 
@@ -309,6 +332,8 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
   const inCombat = view.phase === 'combat'
   const ended = view.phase === 'won' || view.phase === 'lost'
   const canChoose = inCombat && !!me && me.hp > 0 && !me.action
+  const canStart = view.phase === 'lobby' && view.isHost
+  const canAdvance = view.phase === 'exploring' && view.turnHeroId === userId
 
   // Un choix d'action referme le mode de ciblage.
   async function choose(action: Action) {
@@ -331,17 +356,22 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
   let narration = "Les héros se rassemblent à l'entrée du donjon."
   if (view.phase === 'lobby') {
     narration = view.isHost
-      ? "Invitez des joueurs avec l'adresse de cette page, comblez les places libres avec des compagnons, puis franchissez la porte."
+      ? "Invitez des joueurs avec l'adresse de cette page, comblez les places libres avec des compagnons, puis lancez l'expédition avec le bouton en haut de la scène."
       : view.isMember
-        ? "Vous êtes dans l'expédition. L'hôte donnera le signal pour franchir la porte."
+        ? "Vous êtes dans l'expédition. L'hôte donnera le signal pour lancer l'expédition."
         : "Cliquez sur une place libre pour rejoindre l'expédition."
   }
   if (view.phase === 'exploring') {
     narration =
       view.turnHeroId === userId
-        ? "C'est à vous : cliquez sur la porte pour l'ouvrir."
-        : `Au tour de ${nameOf(view.turnHeroId ?? '')} d'ouvrir la porte.`
+        ? "C'est à vous : validez la montée à l'étage suivant."
+        : `Au tour de ${nameOf(view.turnHeroId ?? '')} d'avancer vers l'étage suivant.`
   }
+  if (view.phase === 'exploring' && view.currentRoom?.kind === 'treasure') {
+    narration += ` Un trésor de ${view.currentRoom.gold} or vous attend.`
+  }
+  if (view.phase === 'exploring' && view.currentRoom?.kind === 'empty')
+    narration += ' La salle est vide.'
   if (inCombat) {
     if (me?.action) {
       narration = `Votre choix : ${describeAction(me.action, nameOf)}. En attente des autres héros.`
@@ -362,7 +392,7 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
         <DungeonWall />
         <ul className="chips" aria-label="État de l'expédition">
           <li className="chip">
-            {view.room < 0 ? 'Entrée' : `Salle ${view.room + 1} sur ${view.roomCount}`}
+            {view.room < 0 ? 'Entrée' : `Étage ${view.room + 1} sur ${view.roomCount}`}
           </li>
           <li className="chip">
             <Entity kind="gold" /> {view.loot}
@@ -407,8 +437,13 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
                 </Fig>
                 {floaters
                   .filter((floater) => floater.target === hero.id)
-                  .map((floater) => (
-                    <span key={floater.key} className="floater" data-kind={floater.kind}>
+                  .map((floater, n) => (
+                    <span
+                      key={floater.key}
+                      className="floater"
+                      data-kind={floater.kind}
+                      style={floaterStyle(n)}
+                    >
                       {floater.text}
                     </span>
                   ))}
@@ -467,8 +502,13 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
                   </Fig>
                   {floaters
                     .filter((floater) => floater.target === monster.id)
-                    .map((floater) => (
-                      <span key={floater.key} className="floater" data-kind={floater.kind}>
+                    .map((floater, n) => (
+                      <span
+                        key={floater.key}
+                        className="floater"
+                        data-kind={floater.kind}
+                        style={floaterStyle(n)}
+                      >
                         {floater.text}
                       </span>
                     ))}
@@ -485,32 +525,27 @@ export function DungeonGame({ gameId, userId }: { gameId: string; userId: string
           </div>
         )}
 
-        {(view.phase === 'exploring' || view.phase === 'lobby') && (
-          <div className="scene-door">
-            <Fig
-              onClick={
-                view.phase === 'lobby'
-                  ? view.isHost
-                    ? start
-                    : undefined
-                  : view.turnHeroId === userId
-                    ? openDoor
-                    : undefined
-              }
-              glow={view.phase === 'lobby' ? view.isHost : view.turnHeroId === userId}
-              label={view.phase === 'lobby' ? 'Entrer dans le donjon' : 'Ouvrir la porte suivante'}
-            >
-              <DoorArt />
-            </Fig>
-            {view.phase === 'lobby' && (
-              <span className="fig-tags">
-                {view.isHost ? 'Entrer dans le donjon' : 'Porte du donjon'}
-              </span>
-            )}
-            {view.currentRoom?.kind === 'treasure' && (
-              <span className="fig-tags">Un trésor de {view.currentRoom.gold} or</span>
-            )}
-            {view.currentRoom?.kind === 'empty' && <span className="fig-tags">Une salle vide</span>}
+        {canAdvance && (
+          <div className="modal-back">
+            <dialog open className="scroll modal" aria-label="Monter à l'étage suivant">
+              <h2>{view.room < 0 ? "À l'entrée du donjon" : `Étage ${view.room + 1} terminé`}</h2>
+              <p>
+                {view.currentRoom?.kind === 'treasure' &&
+                  `Un trésor de ${view.currentRoom.gold} or vous attend. `}
+                {view.currentRoom?.kind === 'empty' && 'La salle est vide. '}
+                Le groupe est prêt à monter.
+              </p>
+              <button type="button" disabled={opening} onClick={openDoor}>
+                {`Monter à l'étage ${view.room + 2}`}
+              </button>
+            </dialog>
+          </div>
+        )}
+        {canStart && (
+          <div className="chips chips-center">
+            <button type="button" className="start-button" disabled={opening} onClick={start}>
+              Lancer l'expédition
+            </button>
           </div>
         )}
 

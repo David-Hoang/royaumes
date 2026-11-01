@@ -601,7 +601,7 @@ input.amount { width: 5em; }
 }
 .scene-heroes { left: 3%; width: 42%; }
 .scene-monsters { right: 3%; width: 42%; justify-content: flex-end; }
-.scene-door { left: 50%; width: 14%; transform: translateX(-50%); flex-direction: column; align-items: center; }
+.scene-door { left: 50%; width: 17%; transform: translateX(-50%); flex-direction: column; align-items: center; }
 .fig-wrap {
     position: relative;
     flex: 1 1 0;
@@ -637,9 +637,10 @@ button.fig[data-glow='true'] svg { filter: drop-shadow(0 0 10px var(--accent-lig
 .actions svg { width: 22px; height: 22px; fill: currentColor; }
 .floater {
     position: absolute;
-    top: 20%;
-    left: 50%;
+    top: calc(20% + var(--dy, 0px));
+    left: calc(50% + var(--dx, 0px));
     z-index: 6;
+    transform: translateX(-50%);
     font-family: var(--font-display);
     font-size: 1.6rem;
     font-weight: 700;
@@ -650,14 +651,13 @@ button.fig[data-glow='true'] svg { filter: drop-shadow(0 0 10px var(--accent-lig
 .floater[data-kind='damage'] { color: #e5594a; }
 .floater[data-kind='heal'] { color: #7fcf7a; }
 @media (prefers-reduced-motion: no-preference) {
-    .floater { animation: float-up 1.6s ease-out forwards; }
+    /* Le chiffre reste invisible pendant son délai, puis monte et s'efface. */
+    .floater { opacity: 0; animation: float-up 1.6s ease-out var(--delay, 0s) both; }
     @keyframes float-up {
-        from { transform: translate(-50%, 0); opacity: 1; }
-        to { transform: translate(-50%, -60px); opacity: 0; }
+        0% { transform: translate(-50%, 0); opacity: 0; }
+        12% { opacity: 1; }
+        100% { transform: translate(-50%, -60px); opacity: 0; }
     }
-}
-@media (prefers-reduced-motion: reduce) {
-    .floater { transform: translateX(-50%); }
 }
 .chips-center { left: 50%; transform: translateX(-50%); top: 12%; }
 button.fig[data-glow='true'] svg { animation: none; }
@@ -1012,3 +1012,5 @@ html { scrollbar-gutter: stable; overflow-anchor: none; }
 /* Salon du Donjon : les places libres sont des silhouettes pointillées sur lesquelles on clique. */
 .slot .fig-name { color: #d9ceb4; }
 .slot button.fig:hover svg { filter: drop-shadow(0 0 10px var(--accent-light)); }
+
+.start-button { font-size: 1.3rem; padding: 12px 34px; }
