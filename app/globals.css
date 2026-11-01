@@ -355,7 +355,7 @@ input:focus-visible {
 /* Scènes illustrées : un paysage dessiné, avec des éléments sur lesquels on clique. */
 .scene {
     --ratio: 1.684;
-    --chrome: 355px;
+    --chrome: 380px;
     position: relative;
     aspect-ratio: 1280 / 760;
     /* Une scène tient dans la hauteur de la fenêtre : on retire ce qui l'entoure (--chrome). */
@@ -908,7 +908,7 @@ button.spot:hover:not(:disabled) { filter: none; }
     text-shadow: 0 2px 4px #000, 0 0 10px var(--accent); pointer-events: none;
 }
 .saw-wheel { transform-box: fill-box; transform-origin: 50% 50%; }
-.dock { min-height: 128px; }
+.dock { min-height: 156px; overflow-anchor: none; }
 .build-card {
     position: relative; display: grid; grid-template-columns: 1.2fr 1fr auto; align-items: center; gap: 12px 24px;
     margin: 14px 5px 0; padding: 14px 40px 14px 20px;
@@ -1005,3 +1005,6 @@ progress { accent-color: var(--accent); }
     filter: grayscale(1) sepia(1) saturate(2.6) hue-rotate(-12deg) brightness(1.15) contrast(1.05) drop-shadow(0 1px 0 rgba(0, 0, 0, 0.7));
 }
 .seal[data-unlocked='false'] .seal-wax .entity > span[aria-hidden='true'] { filter: grayscale(1) brightness(0.8) drop-shadow(0 1px 0 rgba(0, 0, 0, 0.7)); }
+
+/* La barre de défilement garde sa place : qu'elle apparaisse ou non, la scène ne change pas de largeur (et ne « saute » pas). */
+html { scrollbar-gutter: stable; overflow-anchor: none; }
